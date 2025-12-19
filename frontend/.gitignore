@@ -1,0 +1,30 @@
+# 依赖目录
+node_modules/
+
+# 构建输出目录
+dist/
+build/
+
+# 本地环境变量
+.env.local
+.env.*.local
+
+# 日志文件
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 编辑器目录
+.vscode/
+.idea/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 测试覆盖目录
+coverage/
+
+# 临时文件
+*.tmp
+*.temp
