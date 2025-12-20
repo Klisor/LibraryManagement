@@ -83,6 +83,10 @@
               :value="item.value"
             ></el-option>
           </el-select>
+          <!-- 添加分类显示标签 -->
+          <div v-if="categoryFilter" style="display: inline-block; margin-left: 10px;">
+            当前分类：<el-tag size="small">{{ getCategoryName(categoryFilter) }}</el-tag>
+          </div>
 
           <el-checkbox
             v-model="availableOnly"
@@ -321,7 +325,7 @@ export default {
       // 搜索和筛选
       searchKeyword: '',
       searchField: 'all',
-      categoryFilter: '',
+      categoryFilter: '', // 确保初始值为空字符串
       availableOnly: false,
       
       // 图书数据
@@ -341,17 +345,102 @@ export default {
       categoryOptions: CATEGORY_OPTIONS
     }
   },
+  watch: {
+    '$route.query': {
+      handler(newQuery) {
+        this.handleRouteQuery(newQuery)
+      },
+      immediate: true
+    },
+    // 添加分类筛选的深度监听
+    categoryFilter: {
+      handler(newVal) {
+        // 确保categoryFilter是数字类型，或者是空字符串
+        if (newVal !== '' && typeof newVal === 'string') {
+          // 如果是字符串类型的数字，转换为数字
+          const numVal = Number(newVal)
+          if (!isNaN(numVal)) {
+            // 使用$nextTick确保DOM更新后再设置值
+            this.$nextTick(() => {
+              this.categoryFilter = numVal
+            })
+          }
+        }
+      },
+      immediate: true,
+      deep: true
+    }
+  },
   mounted() {
     // 检查用户是否登录
     if (!this.user.id || this.user.role !== 'USER') {
       this.$router.push('/user/login')
       return
     }
-    
-    // 加载图书列表
-    this.loadBooks()
+    // 处理路由参数
+    this.handleRouteQuery(this.$route.query)
   },
   methods: {
+    // 处理路由参数
+    handleRouteQuery(query) {
+      let needLoadBooks = false
+      
+      // 处理搜索关键词
+      if (query.q && (query.q !== this.searchKeyword || query.field !== this.searchField)) {
+        this.searchKeyword = query.q
+        this.searchField = query.field || 'all'
+        this.currentPage = 1
+        needLoadBooks = true
+      }
+      
+      // 处理分类筛选 - 确保转换为数字
+      if (query.category) {
+        const categoryId = Number(query.category)
+        if (categoryId >= 1 && categoryId <= 10 && categoryId !== this.categoryFilter) {
+          this.categoryFilter = categoryId
+          this.currentPage = 1
+          needLoadBooks = true
+        }
+      } else if (this.categoryFilter !== '') {
+        // 如果URL中没有分类参数，但当前有筛选，重置它
+        this.categoryFilter = ''
+        this.currentPage = 1
+        needLoadBooks = true
+      }
+      
+      // 处理图书详情查看
+      if (query.bookId) {
+        this.viewBookById(query.bookId)
+      }
+      
+      // 需要加载图书列表的情况：
+      // 1. 有搜索或分类变化 (needLoadBooks = true)
+      // 2. 首次进入页面，没有任何查询参数
+      // 3. 只有bookId参数，没有其他查询参数（热门图书跳转情况）
+      if (needLoadBooks) {
+        this.loadBooks()
+      } else if (!query.q && !query.category) {
+        // 如果没有搜索和分类参数（包括有bookId的情况），就加载图书列表
+        this.loadBooks()
+      }
+    },
+    
+    // 通过ID查看图书详情
+    async viewBookById(bookId) {
+      try {
+        const res = await bookApi.getBookDetail(bookId)
+        if (res.code === 200) {
+          this.selectedBook = res.data
+          this.detailDialogVisible = true
+        } else {
+          this.$message.error(res.message || '图书不存在')
+        }
+      } catch (error) {
+        console.error('获取图书详情失败:', error)
+        this.$message.error('加载失败，请稍后重试')
+      }
+    },
+    
     // 加载图书列表
     async loadBooks() {
       this.loading = true
@@ -364,16 +453,33 @@ export default {
         // 添加搜索条件
         if (this.searchKeyword.trim()) {
           if (this.searchField === 'all') {
-            // 使用快速搜索接口
-            const searchRes = await bookApi.searchBooks({
-              q: this.searchKeyword.trim(),
-              field: 'title'
-            })
+            // 使用快速搜索接口，搜索所有字段
+            const searchRes = await bookApi.searchBooks(this.searchKeyword.trim(), 'all')
             
             if (searchRes.code === 200 && searchRes.data.length > 0) {
-              // 如果有搜索结果，显示搜索结果
-              this.books = searchRes.data
-              this.total = searchRes.data.length
+              // 对搜索结果应用分类筛选和库存筛选
+              let filteredBooks = searchRes.data
+              
+              // 应用分类筛选
+              if (this.categoryFilter !== '' && this.categoryFilter !== null) {
+                const categoryId = Number(this.categoryFilter)
+                filteredBooks = filteredBooks.filter(book => 
+                  book.category === categoryId
+                )
+              }
+              
+              // 应用库存筛选
+              if (this.availableOnly) {
+                filteredBooks = filteredBooks.filter(book => 
+                  book.availableCopies > 0
+                )
+              }
+              
+              // 对筛选后的结果进行分页
+              const start = (this.currentPage - 1) * this.pageSize
+              const end = start + this.pageSize
+              this.books = filteredBooks.slice(start, end)
+              this.total = filteredBooks.length
             } else {
               // 没有搜索结果，清空列表
               this.books = []
@@ -387,9 +493,9 @@ export default {
           }
         }
         
-        // 添加分类筛选
-        if (this.categoryFilter) {
-          params.category = this.categoryFilter
+        // 添加分类筛选 - 确保是数字
+        if (this.categoryFilter !== '' && this.categoryFilter !== null) {
+          params.category = Number(this.categoryFilter)
         }
         
         // 添加库存筛选

@@ -1,15 +1,45 @@
-// 用户API - 模拟数据版本
-import API_CONFIG from '@/config/api.config'
+// 用户API - 带环境切换版本
+import { API_CONFIG } from '@/config/api.config'
 import { mockUsers } from '@/mock/user'
+import { mockBorrowRecords } from '@/mock/borrow-data'
 import request from '@/utils/request'  // 真实的axios实例
 
 // 模拟延迟
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms))
 
-export const userApi = {
+// 同步用户数据到所有存储位置
+function syncUserDataToAllSources(updatedUser, shouldUpdateCurrentUser = false) {
+    // 1. 只有在指定时才更新 localStorage 中的当前登录用户
+    if (shouldUpdateCurrentUser) {
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+      // 只更新当前登录用户（如果ID匹配）
+      if (currentUser.id === updatedUser.id) {
+        localStorage.setItem('user', JSON.stringify(updatedUser))
+      }
+    }
+    
+    // 2. 更新 registeredUsers 中的数据（用于登录验证）
+    const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
+    const userIndex = registeredUsers.findIndex(u => u.id === updatedUser.id)
+    
+    if (userIndex !== -1) {
+      // 如果用户存在于 registeredUsers 中，更新它
+      // 需要保留密码，更新其他信息
+      registeredUsers[userIndex] = {
+        ...registeredUsers[userIndex],
+        ...updatedUser,
+        // 确保保留密码
+        password: registeredUsers[userIndex].password
+      }
+      localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers))
+    }
+  }
+
+// 模拟数据API
+const mockApi = {
   // 获取用户列表（分页+搜索）
   async getUsers(params = {}) {
-    await delay(500)
+    await delay(API_CONFIG.MOCK_DELAY || 500)
     
     const { 
       page = 1, 
@@ -19,8 +49,26 @@ export const userApi = {
       role = ''
     } = params
     
+    // 1. 获取所有用户：模拟用户 + 注册用户
+    const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
+    
+    // 2. 合并用户时去重（以registeredUsers为准）
+    const allUsersMap = new Map()
+    
+    // 先添加mockUsers
+    mockUsers.forEach(user => {
+      allUsersMap.set(user.id, user)
+    })
+    
+    // 再添加registeredUsers，覆盖重复的
+    registeredUsers.forEach(user => {
+      allUsersMap.set(user.id, user)
+    })
+    
+    const allUsers = Array.from(allUsersMap.values())
+    
     // 过滤用户
-    let filteredUsers = [...mockUsers]
+    let filteredUsers = [...allUsers]
     
     // 用户名搜索
     if (username && username.trim()) {
@@ -58,161 +106,275 @@ export const userApi = {
         total: filteredUsers.length,
         page: Number(page),
         size: Number(size),
-        list: paginatedUsers
+        list: paginatedUsers.map(user => {
+          // 移除密码字段，确保安全
+          const { password, ...userWithoutPassword } = user
+          return userWithoutPassword
+        })
       }
     }
   },
   
   // 获取用户详情
   async getUserDetail(userId) {
-    await delay(300)
+    await delay(API_CONFIG.MOCK_DELAY || 300)
     
-    const user = mockUsers.find(u => u.id === Number(userId))
+    // 1. 先尝试从模拟用户中查找
+    let user = mockUsers.find(u => u.id === Number(userId))
+    
+    // 2. 如果没找到，从注册用户中查找
+    if (!user) {
+      const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
+      user = registeredUsers.find(u => u.id === Number(userId))
+    }
     
     if (user) {
-        // 查找用户的借阅记录 - 修复：确保正确匹配用户ID
-        const userBorrowRecords = mockBorrowRecords
-        .filter(record => {
-            // 确保两个ID都是数字类型再比较
-            const recordUserId = Number(record.userId)
-            const targetUserId = Number(userId)
-            return recordUserId === targetUserId
-        })
-        .map(record => ({
-            id: record.id,
-            bookTitle: record.bookTitle,
-            borrowDate: record.borrowDate,
-            dueDate: record.dueDate,
-            returnDate: record.returnDate,
-            status: record.status
-        }))
-        
-        console.log(`用户 ${user.username} 的借阅记录:`, userBorrowRecords) // 添加调试日志
-        
-        return {
+      // 查找用户的借阅记录 - 确保正确匹配用户ID
+      const userBorrowRecords = mockBorrowRecords
+      .filter(record => {
+        // 确保两个ID都是数字类型再比较
+        const recordUserId = Number(record.userId)
+        const targetUserId = Number(userId)
+        return recordUserId === targetUserId
+      })
+      .map(record => ({
+        id: record.id,
+        bookTitle: record.bookTitle,
+        borrowDate: record.borrowDate,
+        dueDate: record.dueDate,
+        returnDate: record.returnDate,
+        status: record.status
+      }))
+      
+      console.log(`用户 ${user.username} 的借阅记录:`, userBorrowRecords)
+      
+      // 移除密码字段
+      const { password, ...userWithoutPassword } = user
+      
+      return {
         code: 200,
         message: '成功',
         data: {
-            ...user,
-            borrowRecords: userBorrowRecords
+          ...userWithoutPassword,
+          borrowRecords: userBorrowRecords
         }
-        }
+      }
     } else {
-        return {
+      return {
         code: 404,
         message: '用户不存在',
         data: null
-        }
+      }
     }
-    },
+  },
   
   // 更新用户信息
   async updateUser(userId, userData) {
-    await delay(500)
+    await delay(API_CONFIG.MOCK_DELAY || 500)
     
-    const userIndex = mockUsers.findIndex(u => u.id === Number(userId))
+    // 1. 只在registeredUsers中查找（统一数据源）
+    let registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
+    let userIndex = registeredUsers.findIndex(u => u.id === Number(userId))
+    
+    // 2. 如果没找到，再尝试从mockUsers中查找
+    let userSource = 'registered'
+    if (userIndex === -1) {
+      userIndex = mockUsers.findIndex(u => u.id === Number(userId))
+      userSource = 'mock'
+    }
     
     if (userIndex === -1) {
-        return {
+      return {
         code: 404,
         message: '用户不存在',
         data: null
-        }
+      }
+    }
+    
+    let userToUpdate
+    if (userSource === 'mock') {
+      userToUpdate = mockUsers[userIndex]
+    } else {
+      userToUpdate = registeredUsers[userIndex]
     }
     
     // 如果角色变化，需要调整最大借阅数
-    if (userData.role && userData.role !== mockUsers[userIndex].role) {
-        const currentBorrowed = mockUsers[userIndex].borrowedCount
-        
-        if (userData.role === 'ADMIN') {
-        // 角色变成管理员，至少设置10本，但不能小于当前借阅数
+    if (userData.role && userData.role !== userToUpdate.role) {
+      const currentBorrowed = userToUpdate.borrowedCount
+      
+      if (userData.role === 'ADMIN') {
         const adminDefault = Math.max(10, currentBorrowed)
         if (userData.maxBorrowCount === undefined || userData.maxBorrowCount < adminDefault) {
-            userData.maxBorrowCount = adminDefault
+          userData.maxBorrowCount = adminDefault
         }
-        } else {
-        // 角色变成普通用户，至少设置5本，但不能小于当前借阅数
+      } else {
         const userDefault = Math.max(5, currentBorrowed)
         if (userData.maxBorrowCount === undefined || userData.maxBorrowCount < userDefault) {
-            userData.maxBorrowCount = userDefault
+          userData.maxBorrowCount = userDefault
         }
-        }
+      }
     }
     
     // 检查最大借阅数量是否小于当前借阅数量
     if (userData.maxBorrowCount !== undefined) {
-        const currentBorrowed = mockUsers[userIndex].borrowedCount
-        if (userData.maxBorrowCount < currentBorrowed) {
-        return {
-            code: 400,
-            message: '最大借阅数量不能小于当前借阅数量',
-            data: null
-        }
-        }
+      const maxLimit = userData.role === 'ADMIN' ? 50 : 20;
+      if (userData.maxBorrowCount > maxLimit) {
+          return {
+              code: 400,
+              message: userData.role === 'ADMIN' 
+                  ? '管理员最大借阅数不能超过50本' 
+                  : '普通用户最大借阅数不能超过20本',
+              data: null
+          };
+      }
     }
     
     // 更新用户信息
     const updatedUser = {
-        ...mockUsers[userIndex],
-        ...userData,
-        updatedAt: new Date().toISOString()
-    }
-    
-    mockUsers[userIndex] = updatedUser
-    
-    return {
-        code: 200,
-        message: '更新成功',
-        data: updatedUser
-    }
-    },
-  
-  // 管理员添加用户
-  async addUser(userData) {
-    await delay(500)
-    
-    const { username, email, password, role = 'USER' } = userData
-    
-    // 检查用户名是否已存在
-    if (mockUsers.some(u => u.username === username)) {
-      return {
-        code: 400,
-        message: '用户名已存在',
-        data: null
-      }
-    }
-    
-    // 检查邮箱是否已存在
-    if (mockUsers.some(u => u.email === email)) {
-      return {
-        code: 400,
-        message: '邮箱已存在',
-        data: null
-      }
-    }
-    
-    // 创建新用户
-    const newUser = {
-      id: mockUsers.length + 1,
-      username,
-      email,
-      password, // 注意：实际项目中密码应该加密
-      role,
-      maxBorrowCount: role === 'ADMIN' ? 10 : 5, // 管理员可借10本，普通用户5本
-      borrowedCount: 0,
-      createdAt: new Date().toISOString(),
+      ...userToUpdate,
+      ...userData,
       updatedAt: new Date().toISOString()
     }
     
-    mockUsers.push(newUser)
+    // 保存更新到相应数据源
+    if (userSource === 'mock') {
+      mockUsers[userIndex] = updatedUser
+      // 同时同步到registeredUsers
+      const existingIndex = registeredUsers.findIndex(u => u.id === Number(userId))
+      if (existingIndex !== -1) {
+        registeredUsers[existingIndex] = updatedUser
+      } else {
+        registeredUsers.push(updatedUser)
+      }
+    } else {
+      registeredUsers[userIndex] = updatedUser
+    }
     
-    // 移除密码字段再返回
-    const { password: _, ...userWithoutPassword } = newUser
+    localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers))
+    
+    // 移除密码字段
+    const { password, ...userWithoutPassword } = updatedUser
+    
+    // 同步用户数据到所有存储位置，但不更新当前登录用户
+    syncUserDataToAllSources(userWithoutPassword, false)
     
     return {
       code: 200,
-      message: '用户添加成功',
+      message: '更新成功',
       data: userWithoutPassword
     }
+  },
+  
+  // 管理员添加用户
+    async addUser(userData) {
+      await delay(API_CONFIG.MOCK_DELAY || 500)
+      
+      const { username, email, password, role = 'USER', maxBorrowCount } = userData
+      
+      // 获取所有用户（包括mockUsers和registeredUsers）
+      const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
+      const allUsers = [...mockUsers, ...registeredUsers]
+      
+      // 检查用户名是否已存在
+      if (allUsers.some(u => u.username === username)) {
+        return {
+          code: 400,
+          message: '用户名已存在',
+          data: null
+        }
+      }
+      
+      // 检查邮箱是否已存在
+      if (allUsers.some(u => u.email === email)) {
+        return {
+          code: 400,
+          message: '邮箱已存在',
+          data: null
+        }
+      }
+      
+      // 最大借阅数校验
+      const maxLimit = role === 'ADMIN' ? 50 : 20
+      const minLimit = 0
+      
+      // 如果没有传递 maxBorrowCount，使用角色默认值
+      let finalMaxBorrowCount = maxBorrowCount
+      if (finalMaxBorrowCount === undefined || finalMaxBorrowCount === '') {
+        finalMaxBorrowCount = role === 'ADMIN' ? 10 : 5
+      }
+      
+      // 转换为数字
+      finalMaxBorrowCount = Number(finalMaxBorrowCount)
+      
+      // 检查最大借阅数是否在有效范围内
+      if (finalMaxBorrowCount < minLimit) {
+        return {
+          code: 400,
+          message: '最大借阅数不能小于0',
+          data: null
+        }
+      }
+      
+      if (finalMaxBorrowCount > maxLimit) {
+        return {
+          code: 400,
+          message: role === 'ADMIN' 
+            ? '管理员最大借阅数不能超过50本' 
+            : '普通用户最大借阅数不能超过20本',
+          data: null
+        }
+      }
+      
+      // 创建新用户 - 使用时间戳ID
+      const newUser = {
+        id: Date.now(),
+        username,
+        email,
+        password,
+        role,
+        maxBorrowCount: finalMaxBorrowCount, // 使用传入的值或默认值
+        borrowedCount: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+      
+      // 添加到registeredUsers（统一的数据源）
+      registeredUsers.push(newUser)
+      localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers))
+      
+      // 移除密码字段再返回
+      const { password: _, ...userWithoutPassword } = newUser
+      
+      return {
+        code: 200,
+        message: '用户添加成功',
+        data: userWithoutPassword
+      }
+    }
+}
+
+// 真实API
+const realApi = {
+  // 获取用户列表（分页+搜索）
+  async getUsers(params) {
+    return request.get('/users', { params })
+  },
+  
+  // 获取用户详情
+  async getUserDetail(userId) {
+    return request.get(`/users/${userId}`)
+  },
+  
+  // 更新用户信息
+  async updateUser(userId, userData) {
+    return request.put(`/users/${userId}`, userData)
+  },
+  
+  // 管理员添加用户
+  async addUser(userData) {
+    return request.post('/users', userData)
   }
 }
+
+// 根据配置选择使用哪个API
+export const userApi = API_CONFIG.USE_MOCK ? mockApi : realApi

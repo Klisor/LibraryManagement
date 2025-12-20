@@ -272,17 +272,17 @@
         </el-form-item>
         
         <el-form-item label="最大借阅数" prop="maxBorrowCount">
-        <el-input-number
-            v-model="editForm.maxBorrowCount"
-            :min="selectedUser ? selectedUser.borrowedCount : 0"
-            :max="50"
-            controls-position="right"
-        ></el-input-number>
-        <span class="form-tip">
-            {{ editForm.role === 'ADMIN' ? '管理员默认10本' : '普通用户默认5本' }}
-            (当前借阅数：{{ selectedUser ? selectedUser.borrowedCount : 0 }})
-        </span>
-        </el-form-item>
+          <el-input-number
+              v-model="editForm.maxBorrowCount"
+              :min="selectedUser ? selectedUser.borrowedCount : 0"
+              :max="getMaxBorrowLimitByRole(editForm.role)"
+              controls-position="right"
+          ></el-input-number>
+          <span class="form-tip">
+              {{ editForm.role === 'ADMIN' ? '管理员最多可借50本' : '普通用户最多可借20本' }}
+              (当前借阅数：{{ selectedUser ? selectedUser.borrowedCount : 0 }})
+          </span>
+      </el-form-item>
       </el-form>
       
       <div slot="footer" class="dialog-footer">
@@ -356,8 +356,31 @@ export default {
         ],
         maxBorrowCount: [
           { required: true, message: '请输入最大借阅数量', trigger: 'blur' },
-          { type: 'number', min: 1, message: '最大借阅数量必须大于0', trigger: 'blur' }
-        ]
+          { 
+              type: 'number', 
+              min: 1, 
+              message: '最大借阅数量必须大于0', 
+              trigger: 'blur' 
+          },
+          {
+              validator: (rule, value, callback) => {
+                  if (this.editForm.role === 'ADMIN') {
+                      if (value > 50) {
+                          callback(new Error('管理员最大借阅数不能超过50本'))
+                      } else {
+                          callback()
+                      }
+                  } else {
+                      if (value > 20) {
+                          callback(new Error('普通用户最大借阅数不能超过20本'))
+                      } else {
+                          callback()
+                      }
+                  }
+              },
+              trigger: 'blur'
+          }
+      ]
       },
       editing: false
     }
@@ -383,27 +406,28 @@ export default {
     this.loadUsers()
   },
   methods: {
-    adjustMaxBorrowCountByRole(newRole) {
-        if (!newRole) return
-        
-        // 获取当前借阅数
-        const currentBorrowed = this.selectedUser ? this.selectedUser.borrowedCount : 0
-        
-        // 根据角色设置默认最大借阅数
-        if (newRole === 'ADMIN') {
-            // 管理员默认10本，但不能小于当前借阅数
-            const defaultMax = Math.max(10, currentBorrowed)
-            if (this.editForm.maxBorrowCount < defaultMax) {
-            this.editForm.maxBorrowCount = defaultMax
-            }
-        } else {
-            // 普通用户默认5本，但不能小于当前借阅数
-            const defaultMax = Math.max(5, currentBorrowed)
-            if (this.editForm.maxBorrowCount < defaultMax) {
-            this.editForm.maxBorrowCount = defaultMax
-            }
-        }
+    // 获取角色对应的最大借阅限制
+    getMaxBorrowLimitByRole(role) {
+        return role === 'ADMIN' ? 50 : 20;
     },
+    adjustMaxBorrowCountByRole(newRole) {
+      if (!newRole) return
+      
+      // 获取当前借阅数
+      const currentBorrowed = this.selectedUser ? this.selectedUser.borrowedCount : 0
+      const maxLimit = this.getMaxBorrowLimitByRole(newRole)
+      
+      // 根据角色设置默认最大借阅数
+      if (newRole === 'ADMIN') {
+          // 管理员默认10本，但不能小于当前借阅数，也不能超过50
+          const defaultMax = Math.max(10, currentBorrowed)
+          this.editForm.maxBorrowCount = Math.min(defaultMax, maxLimit)
+      } else {
+          // 普通用户默认5本，但不能小于当前借阅数，也不能超过20
+          const defaultMax = Math.max(5, currentBorrowed)
+          this.editForm.maxBorrowCount = Math.min(defaultMax, maxLimit)
+      }
+  },
     // 加载用户列表
     async loadUsers() {
       this.loading = true
@@ -479,44 +503,55 @@ export default {
     
     // 编辑用户
     handleEditUser(user) {
-    this.isEditMode = true
-    this.editDialogTitle = '编辑用户'
-    
-    // 填充表单数据
-    this.editForm = {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        password: '', // 编辑时不显示密码
-        role: user.role,
-        maxBorrowCount: user.maxBorrowCount
-    }
-    
-    this.selectedUser = user
-    this.editDialogVisible = true
-    
-    // 确保表单显示正确的最大借阅数提示
-    console.log('编辑用户:', user.username, '角色:', user.role, '最大借阅数:', user.maxBorrowCount)
-    },
+      this.isEditMode = true
+      this.editDialogTitle = '编辑用户'
+      
+      // 填充表单数据
+      this.editForm = {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          password: '', // 编辑时不显示密码
+          role: user.role,
+          maxBorrowCount: user.maxBorrowCount
+      }
+      
+      this.selectedUser = user
+      
+      // 关键修复：根据当前角色初始化最大借阅数
+      // 使用 this.$nextTick 确保 DOM 更新后再调用
+      this.$nextTick(() => {
+          this.adjustMaxBorrowCountByRole(user.role)
+      })
+      
+      this.editDialogVisible = true
+      
+      console.log('编辑用户:', user.username, '角色:', user.role, '最大借阅数:', user.maxBorrowCount)
+  },
     
     // 添加用户
     handleAddUser() {
-    this.isEditMode = false
-    this.editDialogTitle = '添加用户'
-    this.selectedUser = null
-    
-    // 重置表单，根据角色设置默认最大借阅数
-    this.editForm = {
-        id: '',
-        username: '',
-        email: '',
-        password: '',
-        role: 'USER',
-        maxBorrowCount: 5  // 普通用户默认5本
-    }
-    
-    this.editDialogVisible = true
-    },
+      this.isEditMode = false
+      this.editDialogTitle = '添加用户'
+      this.selectedUser = null
+      
+      // 重置表单，根据角色设置默认最大借阅数
+      this.editForm = {
+          id: '',
+          username: '',
+          email: '',
+          password: '',
+          role: 'USER',
+          maxBorrowCount: 5  // 普通用户默认5本
+      }
+      
+      this.editDialogVisible = true
+      
+      // 关键修复：根据角色初始化最大借阅数
+      this.$nextTick(() => {
+          this.adjustMaxBorrowCountByRole('USER')
+      })
+  },
     
     // 编辑对话框关闭
     handleEditDialogClose() {
@@ -536,6 +571,7 @@ export default {
           if (this.isEditMode) {
             // 编辑用户
             const updateData = {
+              username: this.editForm.username,
               email: this.editForm.email,
               role: this.editForm.role,
               maxBorrowCount: this.editForm.maxBorrowCount
@@ -551,13 +587,14 @@ export default {
               this.$message.error(res.message)
             }
           } else {
-            // 添加用户
-            const addData = {
-              username: this.editForm.username,
-              email: this.editForm.email,
-              password: this.editForm.password,
-              role: this.editForm.role
-            }
+          // 添加用户 - 修改这里，添加 maxBorrowCount
+          const addData = {
+            username: this.editForm.username,
+            email: this.editForm.email,
+            password: this.editForm.password,
+            role: this.editForm.role,
+            maxBorrowCount: this.editForm.maxBorrowCount  // 添加这一行
+          }
             
             const res = await userApi.addUser(addData)
             

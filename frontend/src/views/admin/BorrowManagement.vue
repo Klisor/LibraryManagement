@@ -91,10 +91,12 @@
                       filterable
                       style="width: 300px"
                       @change="handleBookChange"
+                      clearable
+                      :key="bookList.length"
                     >
                       <el-option
                         v-for="book in availableBooks"
-                        :key="book.id"
+                        :key="`book-${book.id}`"
                         :label="`${book.title} (库存 ${book.availableCopies} 本)`"
                         :value="book.id"
                         :disabled="book.availableCopies <= 0"
@@ -120,7 +122,7 @@
                       type="primary" 
                       @click="handleBorrow" 
                       :loading="borrowing"
-                      :disabled="!borrowForm.userId || !borrowForm.bookId"
+                      :disabled="!canBorrowBook"
                     >
                       确认借书
                     </el-button>
@@ -178,18 +180,18 @@
                     <template slot-scope="scope">
                       <el-button
                         size="mini"
+                        type="primary"
+                        @click="viewRecordDetail(scope.row)"
+                      >
+                        详情
+                      </el-button>
+                      <el-button
+                        v-if="shouldShowReturnButton(scope.row)"
+                        size="mini"
                         type="success"
                         @click="handleReturnBook(scope.row)"
                       >
                         还书
-                      </el-button>
-                      <el-button
-                        size="mini"
-                        type="warning"
-                        @click="handleRenewBook(scope.row)"
-                        :disabled="scope.row.renewedCount >= scope.row.maxRenewCount"
-                      >
-                        续借
                       </el-button>
                     </template>
                   </el-table-column>
@@ -266,8 +268,8 @@
                   </el-table-column>
                   <el-table-column prop="status" label="状态" width="100">
                     <template slot-scope="scope">
-                      <el-tag :type="getStatusTagType(scope.row.status)" size="small">
-                        {{ getStatusText(scope.row.status) }}
+                      <el-tag :type="getStatusTagType(scope.row)" size="small">
+                        {{ getRealStatusText(scope.row) }} <!-- 改为动态计算 -->
                       </el-tag>
                     </template>
                   </el-table-column>
@@ -368,17 +370,17 @@ export default {
       },
       borrowRules: {
         userId: [
-          { required: true, message: '请选择用户', trigger: 'change' }
+          { required: true, message: '请选择用户', trigger: 'blur' }
         ],
         bookId: [
-          { required: true, message: '请选择图书', trigger: 'change' }
+          { required: true, message: '请选择图书', trigger: 'blur' }
         ]
       },
       borrowing: false,
       
       // 用户和图书数据
-      userList: [...mockUsers].filter(u => u.role === 'USER'),
-      bookList: [...mockBooks],
+      userList: [],
+      bookList: [],
       selectedUser: null,
       selectedBook: null,
       
@@ -407,13 +409,126 @@ export default {
       
       // 详情对话框
       detailDialogVisible: false,
-      selectedRecord: null
+      selectedRecord: null,
+
+      forceUserRefresh: 0
     }
   },
   computed: {
     // 可借阅的图书（有库存的）
     availableBooks() {
-      return this.bookList.filter(book => book.availableCopies > 0)
+      // 确保返回一个去重后的数组，避免重复的key
+      const seen = new Set()
+      const uniqueBooks = []
+      
+      for (const book of this.bookList) {
+        // 使用ID作为唯一标识
+        const key = `${book.id}`
+        if (!seen.has(key) && book.availableCopies > 0) {
+          seen.add(key)
+          uniqueBooks.push(book)
+        }
+      }
+      
+      console.log('可用图书列表:', uniqueBooks.map(b => ({ id: b.id, title: b.title, isbn: b.isbn })))
+      return uniqueBooks
+    },
+    
+    // 动态获取用户列表（包括管理员）
+    dynamicUserList() {
+      // 这个 console.log 可以帮助我们确认计算属性是否被重新执行
+      console.log('🔄 重新计算 dynamicUserList，forceUserRefresh:', this.forceUserRefresh)
+      
+      // 合并 mockUsers 和 registeredUsers
+      const mockUsersList = [...mockUsers]
+      const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
+      
+      // 创建一个映射来避免重复用户（以ID为准）
+      const userMap = new Map()
+      
+      // 先添加 mockUsers
+      mockUsersList.forEach(user => {
+        if (user.id) {
+          userMap.set(user.id, { 
+            ...user,
+            borrowedCount: Number(user.borrowedCount) || 0 // 确保是数字
+          })
+        }
+      })
+      
+      // 再添加 registeredUsers，覆盖重复的
+      registeredUsers.forEach(user => {
+        if (user.id) {
+          const userId = Number(user.id)
+          if (!isNaN(userId)) {
+            userMap.set(userId, { 
+              ...user,
+              id: userId, // 确保ID是数字类型
+              borrowedCount: Number(user.borrowedCount) || 0 // 确保是数字
+            })
+          }
+        }
+      })
+      
+      return Array.from(userMap.values())
+    },
+    
+    // 动态获取图书列表
+    // 修改 dynamicBookList 计算属性
+    dynamicBookList() {
+      // 从统一的数据源获取图书数据
+      try {
+        // 直接从 localStorage 获取，避免循环依赖
+        const storedBooks = JSON.parse(localStorage.getItem('books') || 'null')
+        const books = storedBooks || [...mockBooks]
+        
+        // 确保所有图书ID是数字类型，并去重
+        const bookMap = new Map()
+        books.forEach(book => {
+          if (book && book.id) {
+            const numericId = Number(book.id)
+            if (!isNaN(numericId)) {
+              const uniqueBook = {
+                ...book,
+                id: numericId
+              }
+              bookMap.set(numericId, uniqueBook)
+            }
+          }
+        })
+        
+        return Array.from(bookMap.values())
+      } catch (error) {
+        console.error('获取图书数据失败:', error)
+        // 如果出现错误，返回去重后的mockBooks
+        const bookMap = new Map()
+        mockBooks.forEach(book => {
+          if (book && book.id) {
+            const numericId = Number(book.id)
+            if (!isNaN(numericId)) {
+              bookMap.set(numericId, book)
+            }
+          }
+        })
+        return Array.from(bookMap.values())
+      }
+    },
+    canBorrowBook() {
+      if (!this.borrowForm.userId || !this.borrowForm.bookId) {
+        return false
+      }
+      
+      // 检查用户是否达到最大借阅数
+      if (this.selectedUser && this.selectedUser.borrowedCount >= this.selectedUser.maxBorrowCount) {
+        return false
+      }
+      
+      // 检查图书是否有库存
+      if (this.selectedBook && this.selectedBook.availableCopies <= 0) {
+        return false
+      }
+      
+      return true
     }
   },
   mounted() {
@@ -423,6 +538,10 @@ export default {
       return
     }
     
+    // 每次进入都重新加载用户和图书列表
+    this.refreshUserList()  // 新增这行，刷新用户列表
+    this.refreshBookList()
+    
     // 根据当前标签页加载数据
     if (this.activeTab === 'current') {
       this.loadCurrentBorrow()
@@ -431,11 +550,91 @@ export default {
     }
   },
   methods: {
+    getLatestBookData() {
+      try {
+        // 直接读取 localStorage 的最新数据
+        const storedBooks = JSON.parse(localStorage.getItem('books') || 'null')
+        const mockBooks = [...mockBooks] // 导入的 mockBooks
+        
+        const books = storedBooks || mockBooks
+        
+        // 确保所有图书ID是数字类型，并去重
+        const bookMap = new Map()
+        books.forEach(book => {
+          if (book && book.id) {
+            const numericId = Number(book.id)
+            if (!isNaN(numericId)) {
+              // 创建新对象，避免引用问题
+              const uniqueBook = {
+                ...book,
+                id: numericId,
+                availableCopies: Number(book.availableCopies) || 0
+              }
+              bookMap.set(numericId, uniqueBook)
+            }
+          }
+        })
+        
+        return Array.from(bookMap.values())
+      } catch (error) {
+        console.error('获取图书数据失败:', error)
+        return []
+      }
+    },
+    // 添加方法判断是否应该显示还书按钮
+    shouldShowReturnButton(record) {
+      // 只有当记录状态是 BORROWED，并且不是逾期状态时才显示还书按钮
+      if (record.status === 'BORROWED') {
+        const now = new Date()
+        const dueDate = new Date(record.dueDate)
+        // 即使逾期，也可以还书，所以这里我们只检查状态
+        return true
+      }
+      return false
+    },
+    // 刷新图书列表
+    refreshBookList() {
+      // 使用新方法获取最新数据
+      this.bookList = this.getLatestBookData()
+      console.log('✅ 刷新图书列表，图书数量:', this.bookList.length)
+      
+      // 调试输出：显示每本书的库存
+      this.bookList.forEach(book => {
+        console.log(`📚 ${book.title} (ID: ${book.id}): 库存 ${book.availableCopies}/${book.totalCopies}`)
+      })
+    },
+
+    // 刷新用户列表
+    refreshUserList() {
+      // 强制重新计算 dynamicUserList
+      this.forceUserRefresh++
+      
+      // 等待 Vue 响应式系统更新
+      this.$nextTick(() => {
+        this.userList = this.dynamicUserList
+        
+        console.log('✅ 刷新用户列表，用户数量:', this.userList.length)
+        
+        // 查找当前选中的用户，如果有的话，更新它的引用
+        if (this.selectedUser) {
+          const updatedUser = this.userList.find(u => u.id === this.selectedUser.id)
+          if (updatedUser) {
+            this.selectedUser = updatedUser
+          }
+        }
+      })
+    },
+
     // 处理标签页切换
     handleTabClick(tab) {
-      if (tab.name === 'current' && this.currentBorrowList.length === 0) {
+      // **修复：每次切换标签页都强制刷新数据**
+      if (tab.name === 'borrow') {
+        // 刷新用户和图书列表
+        this.refreshUserList()
+        this.refreshBookList()
+      } else if (tab.name === 'current') {
         this.loadCurrentBorrow()
-      } else if (tab.name === 'records' && this.allRecordsList.length === 0) {
+      } else if (tab.name === 'records') {
         this.loadAllRecords()
       }
     },
@@ -449,7 +648,30 @@ export default {
     
     // 图书选择变化
     handleBookChange(bookId) {
-      this.selectedBook = this.bookList.find(b => b.id === bookId)
+      if (bookId) {
+        const numericId = Number(bookId)
+        // 从当前bookList中查找图书
+        this.selectedBook = this.bookList.find(b => {
+          if (!b || !b.id) return false
+          return Number(b.id) === numericId
+        })
+        
+        // 如果没有找到，尝试从dynamicBookList中查找
+        if (!this.selectedBook) {
+          const dynamicBooks = this.dynamicBookList
+          this.selectedBook = dynamicBooks.find(b => {
+            if (!b || !b.id) return false
+            return Number(b.id) === numericId
+          })
+        }
+        
+        // 确保availableCopies是数字
+        if (this.selectedBook && this.selectedBook.availableCopies !== undefined) {
+          this.selectedBook.availableCopies = Number(this.selectedBook.availableCopies)
+        }
+      } else {
+        this.selectedBook = null
+      }
     },
     
     // 借书
@@ -465,17 +687,15 @@ export default {
           if (res.code === 200) {
             this.$message.success('借书成功')
             
+            // **修复：更新所有相关列表**
+            this.loadCurrentBorrow()
+            this.loadAllRecords()
+            this.refreshUserList()
+            this.refreshBookList()
+            
             // 重置表单
             this.resetBorrowForm()
             
-            // 刷新用户和图书数据
-            this.selectedUser = this.userList.find(u => u.id === this.borrowForm.userId)
-            this.selectedBook = this.bookList.find(b => b.id === this.borrowForm.bookId)
-            
-            // 如果当前在"当前借阅"标签页，刷新数据
-            if (this.activeTab === 'current') {
-              this.loadCurrentBorrow()
-            }
           } else {
             this.$message.error(res.message)
           }
@@ -490,14 +710,21 @@ export default {
     
     // 重置借书表单
     resetBorrowForm() {
+      // 1. 重置表单数据
       this.borrowForm = {
         userId: '',
         bookId: ''
       }
       this.selectedUser = null
       this.selectedBook = null
+      
+      // 2. 清除表单验证
       if (this.$refs.borrowFormRef) {
-        this.$refs.borrowFormRef.clearValidate()
+        // 使用 resetFields 而不是 clearValidate
+        // resetFields 会重置整个表单到初始值并移除验证结果
+        this.$nextTick(() => {
+          this.$refs.borrowFormRef.resetFields()
+        })
       }
     },
     
@@ -553,33 +780,44 @@ export default {
     
     // 加载所有借阅记录
     async loadAllRecords() {
-    this.recordsLoading = true
-    try {
+      this.recordsLoading = true
+      try {
         const params = {
-        page: this.recordsPagination.page,
-        size: this.recordsPagination.size,
-        status: this.recordsFilter.status
+          page: this.recordsPagination.page,
+          size: this.recordsPagination.size,
+          status: this.recordsFilter.status
         }
         
         // 使用 keyword 参数而不是 userName 和 bookTitle
         if (this.recordsFilter.keyword && this.recordsFilter.keyword.trim()) {
-        params.keyword = this.recordsFilter.keyword.trim()
+          params.keyword = this.recordsFilter.keyword.trim()
         }
         
         const res = await borrowApi.getBorrowRecords(params)
         
         if (res.code === 200) {
-        this.allRecordsList = res.data.list
-        this.recordsPagination.total = res.data.total
+          this.allRecordsList = res.data.list
+          this.recordsPagination.total = res.data.total
+          
+          // **修复：添加调试日志，检查数据是否正确**
+          console.log('📋 借书记录加载完成:', {
+            总数: res.data.total,
+            当前页记录数: res.data.list.length,
+            状态分布: {
+              BORROWED: res.data.list.filter(r => r.status === 'BORROWED').length,
+              RETURNED: res.data.list.filter(r => r.status === 'RETURNED').length,
+              OVERDUE: res.data.list.filter(r => r.status === 'OVERDUE').length
+            }
+          })
         } else {
-        this.$message.error(res.message)
+          this.$message.error(res.message)
         }
-    } catch (error) {
+      } catch (error) {
         console.error('加载借阅记录失败:', error)
         this.$message.error('加载失败，请稍后重试')
-    } finally {
+      } finally {
         this.recordsLoading = false
-    }
+      }
     },
     
     // 重置借阅记录筛选
@@ -617,16 +855,39 @@ export default {
           if (res.code === 200) {
             this.$message.success('还书成功')
             
-            // 刷新数据
+            // **关键修复：立即更新界面，而不是等待API重新加载**
+            
+            // 1. 如果当前在"当前借阅"标签页，立即从列表中移除这条记录
             if (this.activeTab === 'current') {
-              this.loadCurrentBorrow()
-            } else if (this.activeTab === 'records') {
-              this.loadAllRecords()
+              const index = this.currentBorrowList.findIndex(r => r.id === record.id)
+              if (index !== -1) {
+                this.currentBorrowList.splice(index, 1)
+                this.currentPagination.total--
+              }
             }
             
-            // 刷新用户和图书数据
-            this.userList = [...mockUsers].filter(u => u.role === 'USER')
-            this.bookList = [...mockBooks]
+            // 2. 如果当前在"借书记录"标签页，立即更新这条记录的状态
+            if (this.activeTab === 'records') {
+              const recordIndex = this.allRecordsList.findIndex(r => r.id === record.id)
+              if (recordIndex !== -1) {
+                // 立即更新状态和归还日期
+                this.allRecordsList[recordIndex] = {
+                  ...this.allRecordsList[recordIndex],
+                  status: 'RETURNED',
+                  returnDate: new Date().toISOString(),
+                  updatedAt: new Date().toISOString()
+                }
+                
+                // 强制Vue重新渲染这一行
+                this.allRecordsList = [...this.allRecordsList]
+              }
+            }
+            
+            // 3. 刷新所有列表（确保数据一致性）
+            this.loadCurrentBorrow()
+            this.loadAllRecords()
+            this.refreshUserList()
+            this.refreshBookList()
             
             // 如果正在借书，更新选中用户的信息
             if (this.selectedUser) {
@@ -655,12 +916,12 @@ export default {
           if (res.code === 200) {
             this.$message.success('续借成功')
             
-            // 刷新数据
-            if (this.activeTab === 'current') {
-              this.loadCurrentBorrow()
-            } else if (this.activeTab === 'records') {
-              this.loadAllRecords()
-            }
+            // **修复：续借后也刷新所有相关列表**
+            // 刷新当前借阅列表
+            this.loadCurrentBorrow()
+            
+            // 刷新借阅记录列表
+            this.loadAllRecords()
           } else {
             this.$message.error(res.message)
           }
@@ -708,12 +969,43 @@ export default {
         return 'normal'
       }
     },
-    
-    getStatusTagType(status) {
-      switch (status) {
-        case 'BORROWED': return 'primary'
-        case 'RETURNED': return 'success'
-        case 'OVERDUE': return 'danger'
+    // 添加一个方法来动态计算状态文本
+    getRealStatusText(record) {
+      // 如果记录已经是 RETURNED，直接返回"已归还"
+      if (record.status === 'RETURNED') {
+        return '已归还'
+      }
+      
+      // 如果记录是 BORROWED，检查是否逾期
+      if (record.status === 'BORROWED') {
+        const now = new Date()
+        const dueDate = new Date(record.dueDate)
+        if (dueDate < now) {
+          return '已逾期'
+        } else {
+          const diffDays = Math.ceil((dueDate - now) / (1000 * 60 * 60 * 24))
+          if (diffDays <= 3) {
+            return '即将到期'
+          }
+          return '借阅中'
+        }
+      }
+      
+      // 如果记录是 OVERDUE，返回"已逾期"
+      if (record.status === 'OVERDUE') {
+        return '已逾期'
+      }
+      
+      return record.status
+    },
+
+    getStatusTagType(record) {
+      const statusText = this.getRealStatusText(record)
+      switch (statusText) {
+        case '借阅中': return 'primary'
+        case '已归还': return 'success'
+        case '已逾期': return 'danger'
+        case '即将到期': return 'warning'
         default: return 'info'
       }
     },

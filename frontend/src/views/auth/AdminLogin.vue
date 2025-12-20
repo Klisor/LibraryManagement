@@ -76,22 +76,41 @@ export default {
         
         this.loading = true
         
-        // 模拟管理员登录
+        // 模拟管理员登录 - 支持多种验证方式
         setTimeout(() => {
-          if (this.form.username === 'admin' && this.form.password === '123456') {
-            localStorage.setItem('user', JSON.stringify({
-              id: 1,
-              username: 'admin',
-              role: 'ADMIN',
-              email: 'admin@example.com',
-              maxBorrowCount: 10,
-              borrowedCount: 0
-            }))
+          // 1. 固定的模拟管理员
+          const mockAdmins = [
+            { username: 'admin', password: '123456', role: 'ADMIN', id: 1, email: 'admin@example.com', maxBorrowCount: 10, borrowedCount: 0 }
+          ]
+          
+          // 2. 从localStorage中获取所有注册的用户，筛选出管理员
+          const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
+          const registeredAdmins = registeredUsers.filter(u => u.role === 'ADMIN')
+          
+          // 3. 合并所有管理员数据
+          const allAdmins = [...mockAdmins, ...registeredAdmins]
+          
+          // 4. 查找管理员用户（只支持用户名登录）
+          const admin = allAdmins.find(u => {
+            // 检查用户名是否匹配
+            const isUsernameMatch = u.username === this.form.username
+            // 检查密码是否匹配
+            const isPasswordMatch = u.password === this.form.password
+            // 必须是管理员角色
+            const isAdminRole = u.role === 'ADMIN'
+            
+            return isUsernameMatch && isPasswordMatch && isAdminRole
+          })
+          
+          if (admin) {
+            // 移除密码字段，将管理员信息存入localStorage
+            const { password, ...adminWithoutPassword } = admin
+            localStorage.setItem('user', JSON.stringify(adminWithoutPassword))
             
             this.$message.success('登录成功')
             this.$router.push('/admin')
           } else {
-            this.$message.error('用户名或密码错误')
+            this.$message.error('管理员用户名或密码错误')
           }
           this.loading = false
         }, 500)

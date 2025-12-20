@@ -1,6 +1,8 @@
-// 笔记API - 模拟数据版本
+// 笔记API - 带环境切换版本
+import { API_CONFIG } from '@/config/api.config'
 import { mockUsers } from '@/mock/user'
 import { mockBooks } from '@/mock/book'
+import request from '@/utils/request'  // 真实的axios实例
 
 // 模拟延迟
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms))
@@ -82,10 +84,11 @@ for (let i = 5; i <= 15; i++) {
   });
 }
 
-export const noteApi = {
+// 模拟数据API
+const mockApi = {
   // 获取当前用户的笔记列表（分页）
   async getNotes(params = {}) {
-    await delay(500)
+    await delay(API_CONFIG.MOCK_DELAY || 500)
     
     const { 
       page = 1, 
@@ -100,8 +103,14 @@ export const noteApi = {
     let filteredNotes = mockNotes.filter(note => note.userId === currentUserId)
     
     // 按书籍ID筛选
-    if (bookId) {
-      filteredNotes = filteredNotes.filter(note => note.bookId === Number(bookId))
+    if (bookId !== undefined && bookId !== '') {
+      // 如果bookId为0，表示筛选未关联书籍（bookId为null）
+      if (Number(bookId) === 0) {
+        filteredNotes = filteredNotes.filter(note => note.bookId === null)
+      } else {
+        // 否则筛选指定bookId的笔记
+        filteredNotes = filteredNotes.filter(note => note.bookId === Number(bookId))
+      }
     }
     
     // 关键词搜索（标题和内容）
@@ -149,7 +158,7 @@ export const noteApi = {
   
   // 获取笔记详情
   async getNoteDetail(noteId) {
-    await delay(300)
+    await delay(API_CONFIG.MOCK_DELAY || 300)
     
     const note = mockNotes.find(n => n.id === Number(noteId))
     const currentUserId = JSON.parse(localStorage.getItem('user') || '{}').id
@@ -192,7 +201,7 @@ export const noteApi = {
   
   // 创建笔记
   async createNote(noteData) {
-    await delay(500)
+    await delay(API_CONFIG.MOCK_DELAY || 500)
     
     const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
     
@@ -248,7 +257,7 @@ export const noteApi = {
   
   // 更新笔记
   async updateNote(noteId, noteData) {
-    await delay(500)
+    await delay(API_CONFIG.MOCK_DELAY || 500)
     
     const noteIndex = mockNotes.findIndex(n => n.id === Number(noteId))
     const currentUserId = JSON.parse(localStorage.getItem('user') || '{}').id
@@ -302,7 +311,7 @@ export const noteApi = {
   
   // 删除笔记
   async deleteNote(noteId) {
-    await delay(500)
+    await delay(API_CONFIG.MOCK_DELAY || 500)
     
     const noteIndex = mockNotes.findIndex(n => n.id === Number(noteId))
     const currentUserId = JSON.parse(localStorage.getItem('user') || '{}').id
@@ -336,7 +345,7 @@ export const noteApi = {
   
   // 获取某本书的笔记列表（分页）
   async getBookNotes(bookId, params = {}) {
-    await delay(500)
+    await delay(API_CONFIG.MOCK_DELAY || 500)
     
     const { page = 1, size = 10 } = params
     const currentUserId = JSON.parse(localStorage.getItem('user') || '{}').id
@@ -380,3 +389,39 @@ export const noteApi = {
     }
   }
 }
+
+// 真实API
+const realApi = {
+  // 获取当前用户的笔记列表（分页）
+  async getNotes(params) {
+    return request.get('/notes', { params })
+  },
+  
+  // 获取笔记详情
+  async getNoteDetail(noteId) {
+    return request.get(`/notes/${noteId}`)
+  },
+  
+  // 创建笔记
+  async createNote(noteData) {
+    return request.post('/notes', noteData)
+  },
+  
+  // 更新笔记
+  async updateNote(noteId, noteData) {
+    return request.put(`/notes/${noteId}`, noteData)
+  },
+  
+  // 删除笔记
+  async deleteNote(noteId) {
+    return request.delete(`/notes/${noteId}`)
+  },
+  
+  // 获取某本书的笔记列表（分页）
+  async getBookNotes(bookId, params = {}) {
+    return request.get(`/books/${bookId}/notes`, { params })
+  }
+}
+
+// 根据配置选择使用哪个API
+export const noteApi = API_CONFIG.USE_MOCK ? mockApi : realApi

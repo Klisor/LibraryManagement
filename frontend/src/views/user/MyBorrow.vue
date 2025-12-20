@@ -322,16 +322,20 @@ export default {
     }
   },
   mounted() {
-    // 检查用户是否登录
-    if (!this.user.id || this.user.role !== 'USER') {
-      this.$router.push('/user/login')
-      return
-    }
-    
-    // 加载数据
-    this.loadCurrentBorrows()
-    this.loadHistory()
-  },
+      // 检查用户是否登录
+      if (!this.user.id || this.user.role !== 'USER') {
+        this.$router.push('/user/login')
+        return
+      }
+      
+      console.log('当前用户信息:', this.user)
+      console.log('用户ID:', this.user.id)
+      console.log('用户名:', this.user.username)
+      
+      // 加载数据
+      this.loadCurrentBorrows()
+      this.loadHistory()
+    },
   methods: {
     // 加载当前借阅数据
     async loadCurrentBorrows() {
@@ -339,16 +343,19 @@ export default {
       try {
         const params = {
           page: 1,
-          size: 100, // 获取所有当前借阅
-          status: 'BORROWED',
-          userId: this.user.id // 只获取当前用户的记录
+          size: 100,
+          // 不指定状态，获取所有状态的记录，然后在前端过滤
+          userId: this.user.id
         }
         
         const res = await borrowApi.getBorrowRecords(params)
         
         if (res.code === 200) {
-          this.currentBorrows = res.data.list
-          this.updateStats(this.currentBorrows)
+          // 当前借阅 = 状态为 BORROWED 的记录
+          this.currentBorrows = res.data.list.filter(record => 
+            record.status === 'BORROWED'
+          )
+          this.updateStats(res.data.list)  // 传入所有记录进行统计
         } else {
           this.$message.error(res.message)
         }
@@ -362,18 +369,23 @@ export default {
     
     // 更新统计数据
     updateStats(records) {
-      this.currentBorrowCount = records.length
+      // 当前借阅 = 状态为 BORROWED 的记录
+      const currentBorrows = records.filter(record => record.status === 'BORROWED')
+      this.currentBorrowCount = currentBorrows.length
       
-      this.renewableCount = records.filter(record => 
+      // 可续借 = 当前借阅中且未达到最大续借次数的
+      this.renewableCount = currentBorrows.filter(record => 
         record.renewedCount < record.maxRenewCount
       ).length
       
-      this.nearDueCount = records.filter(record => 
+      // 即将到期 = 当前借阅中且7天内到期的
+      this.nearDueCount = currentBorrows.filter(record => 
         this.isNearDue(record.dueDate)
       ).length
       
+      // 已逾期 = 状态为 OVERDUE 的记录
       this.overdueCount = records.filter(record => 
-        this.isOverdue(record.dueDate)
+        record.status === 'OVERDUE'
       ).length
     },
     
@@ -400,10 +412,8 @@ export default {
         const res = await borrowApi.getBorrowRecords(params)
         
         if (res.code === 200) {
-          // 过滤掉当前借阅的记录，只显示历史记录
-          this.historyRecords = res.data.list.filter(record => 
-            record.status !== 'BORROWED'
-          )
+          // 借阅历史 = 状态不为 BORROWED 的记录（包括 RETURNED 和 OVERDUE）
+          this.historyRecords = res.data.list
           this.historyTotal = res.data.total
         } else {
           this.$message.error(res.message)
@@ -459,7 +469,14 @@ export default {
         if (res.code === 200) {
           this.$message.success('续借成功')
           this.renewDialogVisible = false
-          this.loadCurrentBorrows() // 重新加载数据
+          
+          // **修复：根据当前标签页刷新数据**
+          if (this.activeTab === 'current') {
+            this.loadCurrentBorrows()
+          } else {
+            // 如果在历史标签页，也刷新当前借阅（因为续借会影响当前借阅状态）
+            this.loadCurrentBorrows()
+          }
         } else {
           this.$message.error(res.message)
         }
