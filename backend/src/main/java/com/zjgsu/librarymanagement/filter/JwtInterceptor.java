@@ -1,4 +1,4 @@
-package com.zjgsu.librarymanagement.interceptor;
+package com.zjgsu.librarymanagement.filter;
 
 import com.zjgsu.librarymanagement.util.JwtUtil;
 import io.jsonwebtoken.Claims;

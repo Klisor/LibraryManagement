@@ -8,7 +8,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 @RequiredArgsConstructor
 public class WebConfig implements WebMvcConfigurer {
-    private final com.zjgsu.librarymanagement.interceptor.JwtInterceptor jwtInterceptor;
+    private final com.zjgsu.librarymanagement.filter.JwtInterceptor jwtInterceptor;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
@@ -21,7 +21,6 @@ public class WebConfig implements WebMvcConfigurer {
                         "/auth/login",            // 登录
                         "/auth/register",         // 注册
                         "/swagger-ui/**",         // swagger
-                        "/v3/api-docs/**",
                         "/error",                 // Spring Boot 默认错误页
                         "/static/**",             // 静态资源
                         "/public/**"
