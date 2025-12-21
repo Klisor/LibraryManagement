@@ -4,6 +4,7 @@ import { mockBorrowRecords, mockBorrowStats } from '@/mock/borrow-data'
 import { mockUsers } from '@/mock/user'
 import { mockBooks } from '@/mock/book'
 import request from '@/utils/request'  // 真实的axios实例
+import { getBorrowRecords, saveBorrowRecords } from '@/mock/borrow-data'
 
 // 模拟延迟
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms))
@@ -28,7 +29,8 @@ const mockApi = {
     console.log('总记录数:', mockBorrowRecords.length)
     
     // 首先，将所有记录转换为可搜索的格式
-    const searchableRecords = mockBorrowRecords.map(record => {
+    const records = getBorrowRecords()
+    const searchableRecords = records.map(record => {
     // 查找用户信息
     const user = mockUsers.find(u => u.id === record.userId)
     // 查找图书信息
@@ -190,9 +192,13 @@ const mockApi = {
       }
     }
     
-    // 创建借阅记录
+    // 获取当前借阅记录
+    const records = getBorrowRecords()
+    
+    // 创建借阅记录 - 修复：使用现有最大ID+1作为新ID
+    const maxId = records.length > 0 ? Math.max(...records.map(r => r.id)) : 0
     const newRecord = {
-      id: mockBorrowRecords.length + 1,
+      id: maxId + 1,
       userId: Number(userId),
       bookId: Number(bookId),
       userName: user.username,
@@ -245,8 +251,9 @@ const mockApi = {
       }
     }
     
-    // 添加借阅记录
-    mockBorrowRecords.unshift(newRecord)
+    // 添加借阅记录并保存
+    records.unshift(newRecord)
+    saveBorrowRecords(records)
     
     return {
       code: 200,
@@ -268,7 +275,8 @@ const mockApi = {
   async returnBook(recordId) {
     await delay(API_CONFIG.MOCK_DELAY || 500)
     
-    const record = mockBorrowRecords.find(r => r.id === Number(recordId))
+    const records = getBorrowRecords()
+    const record = records.find(r => r.id === Number(recordId))
     
     if (!record) {
       return {
@@ -325,16 +333,15 @@ const mockApi = {
     // **修复：更新图书库存 - 与 borrowBook 方法保持一致**
     const storedBooks = JSON.parse(localStorage.getItem('books') || 'null')
     const books = storedBooks || mockBooks
-    
+
     const book = books.find(b => Number(b.id) === Number(record.bookId))
-    
+
     if (book) {
       // 增加库存
-      book.availableCopies++
+      book.availableCopies = (Number(book.availableCopies) || 0) + 1
       
-      // **关键修复：保存更新后的图书数据**
+      // 保存更新后的图书数据
       if (storedBooks) {
-        // 更新 localStorage 中的图书
         const bookIndex = storedBooks.findIndex(b => Number(b.id) === Number(record.bookId))
         if (bookIndex !== -1) {
           storedBooks[bookIndex] = { 
@@ -344,7 +351,6 @@ const mockApi = {
           localStorage.setItem('books', JSON.stringify(storedBooks))
         }
       } else {
-        // 更新 mockBooks 中的图书
         const mockBookIndex = mockBooks.findIndex(b => Number(b.id) === Number(record.bookId))
         if (mockBookIndex !== -1) {
           mockBooks[mockBookIndex] = { 
@@ -354,6 +360,9 @@ const mockApi = {
         }
       }
     }
+    
+    // 保存更新后的借阅记录
+    saveBorrowRecords(records)
     
     return {
       code: 200,
@@ -375,7 +384,8 @@ const mockApi = {
   async renewBook(recordId) {
     await delay(API_CONFIG.MOCK_DELAY || 500)
     
-    const record = mockBorrowRecords.find(r => r.id === Number(recordId))
+    const records = getBorrowRecords()
+    const record = records.find(r => r.id === Number(recordId))
     
     if (!record) {
       return {
@@ -408,6 +418,9 @@ const mockApi = {
     record.renewedCount++
     record.updatedAt = new Date().toISOString()
     
+    // 保存更新后的借阅记录
+    saveBorrowRecords(records)
+    
     return {
       code: 200,
       message: '续借成功',
@@ -428,7 +441,8 @@ const mockApi = {
     const now = new Date()
     
     // 过滤逾期记录
-    const overdueRecords = mockBorrowRecords.filter(record => {
+    const records = getBorrowRecords()
+    const overdueRecords = records.filter(record => {
       if (record.status === 'BORROWED') {
         const dueDate = new Date(record.dueDate)
         return dueDate < now
@@ -478,7 +492,8 @@ const mockApi = {
   async getBorrowRecordDetail(id) {
     await delay(API_CONFIG.MOCK_DELAY || 300)
     
-    const record = mockBorrowRecords.find(r => r.id === Number(id))
+    const records = getBorrowRecords()
+    const record = records.find(r => r.id === Number(id))
     
     if (record) {
       return {

@@ -48,8 +48,10 @@
               <h1>欢迎回来，{{ user.username }}！</h1>
               <p>尽情探索图书馆的宝藏吧</p>
             </div>
-            <form class="semi-form kSyqFRia semi-form-vertical" id="35160b49-f6c4-4cfe-81c6-7453920959f8"
-              x-form-id="35160b49-f6c4-4cfe-81c6-7453920959f8">
+            <form class="semi-form kSyqFRia semi-form-vertical" 
+      id="35160b49-f6c4-4cfe-81c6-7453920959f8"
+      x-form-id="35160b49-f6c4-4cfe-81c6-7453920959f8"
+      @submit.prevent="handleSearch"> 
               <div class="X9lCp15V">
                 <div class="JAuiogAS n439QfWC semi-form-field-pure">
                   <div class="semi-input-wrapper semi-input-wrapper-default">
@@ -295,8 +297,16 @@ export default {
     }
   },
   mounted() {
-    // 检查是否登录
-    if (!this.user.id || this.user.role !== 'USER') {
+    // 检查是否登录 - 允许普通用户和管理员
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    if (!user.id) {
+      this.$router.push('/user/login')
+      return
+    }
+
+    // 检查用户权限 - 允许普通用户和管理员访问（重要修改）
+    if (user.role !== 'USER' && user.role !== 'ADMIN') {
+      this.$message.warning('请以用户或管理员身份登录')
       this.$router.push('/user/login')
       return
     }
@@ -304,10 +314,10 @@ export default {
     // 设置当前激活的导航项
     this.setActiveNavFromRoute()
 
-    // 监听 storage 事件，当 localStorage 中的 user 更新时，更新本地状态
+    // 监听 storage 事件
     window.addEventListener('storage', this.handleStorageChange)
 
-    // 监听自定义事件（用于同页面更新）
+    // 监听自定义事件
     if (window.eventBus) {
       window.eventBus.$on('user-info-updated', (userData) => {
         this.localUser = userData
@@ -337,6 +347,33 @@ export default {
     }
   },
   methods: {
+
+    // 处理快速搜索
+    handleQuickSearch(keyword) {
+      // 检查keyword是否是分类名称
+      const categoryMap = {
+        '文学': 1,
+        '历史': 2,
+        '科学': 3,
+        '技术': 4,
+        '教育': 5,
+        '艺术': 6,
+        '商业': 7,
+        '健康': 8,
+        '旅行': 9,
+        '其他': 10
+      }
+      
+      // 如果是分类名，跳转到分类筛选
+      if (categoryMap[keyword]) {
+        this.handleCategoryClick(categoryMap[keyword])
+      } else {
+        // 否则执行关键词搜索
+        this.searchQuery = keyword
+        this.handleSearch()
+      }
+    },
+
     // 新增方法：获取热门图书
     async fetchHotBooks() {
       try {
@@ -830,8 +867,7 @@ button {
   left: 50%;
   width: 280px;
   background: linear-gradient(rgb(255, 254, 252),
-      rgba(216, 216, 216, 0.95));
-  /* 半透明蓝色渐变 */
+  rgb(255, 254, 252,0.9));
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
@@ -877,11 +913,12 @@ button {
   color: #333;
   margin: 0 0 8px 0;
   line-height: 1.3;
+  text-align: center; 
 }
 
 .aYZxtXZE {
-  font-size: 14px;
-  color: #666;
+  font-size: 15px;
+  color: #424242;
   line-height: 1.5;
   margin: 0;
 }
@@ -1540,31 +1577,34 @@ h2 {
 }
 
 /* 快速入口圆形风格 */
+/* 修改快速入口圆形区域背景和边框 */
 .quick-actions .action-item.ancient-item {
-  width: 180px;          /* 固定宽高，让它成为圆形 */
-  height: 40px;
-  border-radius: 50%;    /* 完全圆形 */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto;        /* 居中 */
-  padding: 30px 10px;            /* 移除原有内边距 */
-  transition: all 0.3s;
-  background: rgba(250, 248, 245, 0.85);
+  background: rgba(250, 248, 245, 0.85) !important;
   backdrop-filter: blur(10px);
   box-shadow: 
     0 8px 32px rgba(155, 135, 110, 0.15),
     0 4px 8px rgba(155, 135, 110, 0.08),
     inset 0 1px 2px rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(245, 229, 209, 0.5);
-  cursor: pointer;
+  border: 1px solid rgba(245, 229, 209, 0.5) !important;
 }
 
 .quick-actions .action-item.ancient-item:hover {
-  background: #f2f0ec;
-  transform: translateY(-5px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+  background: rgba(245, 240, 230, 0.9) !important;
+  border-color: rgba(212, 180, 131, 0.7) !important;
+}
+
+/* 修改快速入口图标样式 */
+.quick-actions .action-icon.ancient-icon {
+  background: linear-gradient(135deg, #f5f0e6, #e8d4b8) !important;
+  border: 1px solid #e8d4b8 !important;
+  color: #a7874b !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.quick-actions .action-item.ancient-item:hover .action-icon.ancient-icon {
+  background: linear-gradient(135deg, #e8d4b8, #d4b483) !important;
+  color: #8b7355 !important;
+  border-color: #d4b483 !important;
 }
 
 .quick-actions .action-icon.ancient-icon {

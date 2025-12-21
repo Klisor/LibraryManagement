@@ -141,3 +141,76 @@ export const mockBorrowStats = {
     { category: 5, categoryName: '教育', count: 8 }
   ]
 };
+
+// 添加以下代码到文件末尾
+// 初始化借阅记录到localStorage
+export function initBorrowData() {
+  const storedRecords = JSON.parse(localStorage.getItem('mockBorrowRecords') || 'null')
+  
+  if (!storedRecords) {
+    // 如果没有存储的数据，使用 mockBorrowRecords 并保存
+    localStorage.setItem('mockBorrowRecords', JSON.stringify(mockBorrowRecords))
+    console.log('初始化借阅记录数据到 localStorage')
+  } else {
+    // 确保ID连续且唯一
+    const recordMap = new Map()
+    let maxId = 0
+    
+    // 收集所有记录，确保唯一性
+    storedRecords.forEach(record => {
+      if (record && record.id) {
+        const numericId = Number(record.id)
+        if (!isNaN(numericId)) {
+          recordMap.set(numericId, record)
+          if (numericId > maxId) {
+            maxId = numericId
+          }
+        }
+      }
+    })
+    
+    // 确保mockBorrowRecords中的记录也在其中
+    mockBorrowRecords.forEach(record => {
+      if (record && record.id) {
+        const numericId = Number(record.id)
+        if (!isNaN(numericId) && !recordMap.has(numericId)) {
+          recordMap.set(numericId, record)
+          if (numericId > maxId) {
+            maxId = numericId
+          }
+        }
+      }
+    })
+    
+    // 转换为数组，确保ID连续
+    const mergedRecords = []
+    for (let i = 1; i <= maxId; i++) {
+      if (recordMap.has(i)) {
+        mergedRecords.push(recordMap.get(i))
+      }
+    }
+    
+    // 更新 localStorage
+    localStorage.setItem('mockBorrowRecords', JSON.stringify(mergedRecords))
+    
+    // 更新 mockBorrowRecords（修改数组内容而不是重新赋值）
+    mockBorrowRecords.length = 0
+    mergedRecords.forEach(record => mockBorrowRecords.push(record))
+    
+    console.log('合并并同步借阅记录数据，共', mergedRecords.length, '条')
+  }
+}
+
+// 导出一个函数来获取当前借阅记录
+export function getBorrowRecords() {
+  const stored = JSON.parse(localStorage.getItem('mockBorrowRecords'))
+  return stored || mockBorrowRecords
+}
+
+// 导出一个函数来保存借阅记录
+export function saveBorrowRecords(records) {
+  localStorage.setItem('mockBorrowRecords', JSON.stringify(records))
+  // 同时更新 mockBorrowRecords 数组
+  mockBorrowRecords.length = 0
+  records.forEach(record => mockBorrowRecords.push(record))
+}

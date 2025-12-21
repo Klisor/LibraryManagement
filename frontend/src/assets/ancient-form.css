@@ -97,3 +97,136 @@
   font-family: "STKaiti", "KaiTi", serif !important;
   font-weight: bold !important;
 }
+
+
+/* 分页 - 与BookManagement完全一致 */
+.pagination {
+  background: rgba(255, 255, 255, 0.8);
+  padding: 15px;
+  border-radius: 10px;
+  border: 1px solid #e8d4b8;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* 使用更具体的选择器来覆盖默认样式 */
+.ancient-pagination .el-pagination.is-background .btn-prev,
+.ancient-pagination .el-pagination.is-background .btn-next,
+.ancient-pagination .el-pagination.is-background .el-pager li {
+  background: #f5f0e6 !important;
+  border: 1px solid #e8d4b8 !important;
+  color: #5b4636 !important;
+  transition: all 0.3s !important;
+  font-family: "Microsoft YaHei", "Segoe UI", sans-serif !important;
+}
+
+.ancient-pagination .el-pagination.is-background .btn-prev:hover,
+.ancient-pagination .el-pagination.is-background .btn-next:hover,
+.ancient-pagination .el-pagination.is-background .el-pager li:hover {
+  background: #e8dbc9 !important;
+  border-color: #d4b483 !important;
+  color: #5b4636 !important;
+}
+
+.ancient-pagination .el-pagination.is-background .el-pager li.active {
+  background: #8b7355 !important;
+  border-color: #8b7355 !important;
+  color: white !important;
+}
+
+/* 覆盖默认的蓝色焦点/活动状态 */
+.ancient-pagination .el-pagination.is-background .el-pager li.active:hover {
+  background: #8b7355 !important;
+  border-color: #8b7355 !important;
+  color: white !important;
+}
+
+/* 特别确保第一页和第二页的样式 */
+.ancient-pagination .el-pagination.is-background .el-pager li.number:hover,
+.ancient-pagination .el-pagination.is-background .el-pager li.number.active {
+  background: #8b7355 !important;
+  border-color: #8b7355 !important;
+  color: white !important;
+}
+
+/* 分页样式 - 全局生效 */
+.pagination {
+  background: rgba(255, 255, 255, 0.8);
+  padding: 15px;
+  border-radius: 10px;
+  border: 1px solid #e8d4b8;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  margin-top: 20px;
+}
+
+.ancient-pagination .el-pagination.is-background .btn-prev,
+.ancient-pagination .el-pagination.is-background .btn-next,
+.ancient-pagination .el-pagination.is-background .el-pager li {
+  background: #f5f0e6 !important;
+  border: 1px solid #e8d4b8 !important;
+  color: #5b4636 !important;
+  transition: all 0.3s !important;
+  font-family: "Microsoft YaHei", "Segoe UI", sans-serif !important;
+  border-radius: 4px !important;
+}
+
+.ancient-pagination .el-pagination.is-background .btn-prev:hover,
+.ancient-pagination .el-pagination.is-background .btn-next:hover,
+.ancient-pagination .el-pagination.is-background .el-pager li:hover {
+  background: #e8dbc9 !important;
+  border-color: #d4b483 !important;
+  color: #5b4636 !important;
+}
+.pagination >>> .el-pagination.is-background .btn-prev,
+.pagination >>> .el-pagination.is-background .btn-next,
+.pagination >>> .el-pagination.is-background .el-pager li {
+  background: #ffffff !important;
+  border: 1px solid #e8d4b8 !important;
+  color: #5b4636 !important;
+  transition: all 0.3s !important;
+  font-family: "Microsoft YaHei", "Segoe UI", sans-serif !important;
+  border-radius: 4px !important;
+}
+
+/* 悬停效果 */
+.pagination >>> .el-pagination.is-background .btn-prev:hover,
+.pagination >>> .el-pagination.is-background .btn-next:hover,
+.pagination >>> .el-pagination.is-background .el-pager li:hover {
+  background: #f8f1e7 !important;
+  border-color: #ddc29b !important;
+  color: #5b4636 !important;
+  transform: translateY(-1px);
+}
+
+/* 当前选中页数 */
+.pagination >>> .el-pagination.is-background .el-pager li.active {
+  background: #b49877 !important;
+  border-color: #8b7355 !important;
+  color: white !important;
+  font-weight: bold;
+}
+
+
+
+/* 禁用按钮的样式 */
+.pagination >>> .el-pagination.is-background .btn-prev.disabled,
+.pagination >>> .el-pagination.is-background .btn-next.disabled {
+  background: #f5f0e6 !important;
+  border-color: #e8d4b8 !important;
+  color: #c0c4cc !important;
+  cursor: not-allowed;
+}
+
+/* 分页文字信息 */
+.pagination >>> .el-pagination__total,
+.pagination >>> .el-pagination__jump {
+  color: #5b4636 !important;
+  font-family: "Microsoft YaHei", "Segoe UI", sans-serif !important;
+}
+
+/* 页码输入框 */
+.pagination >>> .el-pagination__editor.el-input .el-input__inner {
+  border: 1px solid #e8d4b8 !important;
+  background: #ffffff !important;
+  color: #5b4636 !important;
+  border-radius: 4px !important;
+}

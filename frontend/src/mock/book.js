@@ -163,56 +163,41 @@ export function initBookData() {
   // 检查 localStorage 是否有图书数据
   const storedBooks = JSON.parse(localStorage.getItem('books') || 'null')
   
-  if (!storedBooks) {
+  if (!storedBooks || storedBooks.length === 0) {
     // 如果没有存储的数据，使用 mockBooks 并保存
     localStorage.setItem('books', JSON.stringify(mockBooks))
-    console.log('初始化图书数据到 localStorage')
+    console.log('📚 初始化图书数据到 localStorage，数量:', mockBooks.length)
   } else {
-    // 确保ID连续且唯一
+    console.log('📚 已存在图书数据，数量:', storedBooks.length)
+    
+    // **修复：确保ID连续且唯一**
     const bookMap = new Map()
-    let maxId = 0
     
-    // 收集所有图书，确保唯一性
-    storedBooks.forEach(book => {
-      if (book && book.id) {
+    // 按ID顺序处理图书，确保唯一性
+    storedBooks
+      .filter(book => book && book.id)
+      .sort((a, b) => Number(a.id) - Number(b.id))
+      .forEach(book => {
         const numericId = Number(book.id)
-        if (!isNaN(numericId)) {
-          bookMap.set(numericId, book)
-          if (numericId > maxId) {
-            maxId = numericId
+        if (!isNaN(numericId) && numericId > 0) {
+          // 如果ID已存在，跳过重复的
+          if (!bookMap.has(numericId)) {
+            bookMap.set(numericId, {
+              ...book,
+              id: numericId
+            })
           }
         }
-      }
-    })
+      })
     
-    // 确保mockBooks中的书也在其中
-    mockBooks.forEach(book => {
-      if (book && book.id) {
-        const numericId = Number(book.id)
-        if (!isNaN(numericId) && !bookMap.has(numericId)) {
-          bookMap.set(numericId, book)
-          if (numericId > maxId) {
-            maxId = numericId
-          }
-        }
-      }
-    })
-    
-    // 转换为数组，确保ID连续
-    const mergedBooks = []
-    for (let i = 1; i <= maxId; i++) {
-      if (bookMap.has(i)) {
-        mergedBooks.push(bookMap.get(i))
-      }
-    }
+    // 转换为数组
+    const mergedBooks = Array.from(bookMap.values())
     
     // 更新 localStorage
     localStorage.setItem('books', JSON.stringify(mergedBooks))
     
-    // 更新 mockBooks
-    mockBooks.length = 0
-    mergedBooks.forEach(book => mockBooks.push(book))
-    
-    console.log('合并并同步图书数据，共', mergedBooks.length, '本')
+    console.log('🔄 合并并同步图书数据，共', mergedBooks.length, '本')
   }
 }
+
+initBookData()

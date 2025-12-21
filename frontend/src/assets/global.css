@@ -1,0 +1,92 @@
+/* 对话框圆角样式 */
+.ancient-dialog.el-dialog {
+    border-radius: 16px !important;
+    overflow: hidden !important;
+  }
+  
+  /* 无标题对话框圆角 */
+  .ancient-dialog.no-header-dialog.el-dialog {
+    border-radius: 16px !important;
+  }
+
+  /* 为所有el-dialog添加圆角 */
+.el-dialog {
+    border-radius: 16px !important;
+    overflow: hidden !important;
+  }/* 为所有el-dialog添加圆角 */
+.el-dialog {
+    border-radius: 16px !important;
+    overflow: hidden !important;
+  }
+
+
+  /* 确认对话框样式 - 正确的选择器 */
+.el-message-box.ancient-confirm-dialog {
+    border-radius: 10px !important;
+    border: 1px solid #e8d4b8 !important;
+    background: #ffffff !important;
+  }
+  
+  .el-message-box.ancient-confirm-dialog .el-message-box__header {
+    background: #ffffff !important;
+    border-bottom: 1px solid #e8d4b8 !important;
+    padding: 15px 20px !important;
+    border-top-left-radius: 10px !important;
+    border-top-right-radius: 10px !important;
+  }
+  
+  .el-message-box.ancient-confirm-dialog .el-message-box__title {
+    color: #5b4636 !important;
+    font-family: "STKaiti", "KaiTi", serif !important;
+    font-size: 16px !important;
+  }
+  
+  .el-message-box.ancient-confirm-dialog .el-message-box__content {
+    color: #8b7355 !important;
+    padding: 20px !important;
+  }
+  
+  .el-message-box.ancient-confirm-dialog .el-message-box__btns {
+    padding: 10px 20px 20px !important;
+  }
+  
+  .el-message-box.ancient-confirm-dialog .el-message-box__btns .el-button {
+    background: #ffffff !important;
+    border: 1px solid #e8d4b8 !important;
+    color: #5b4636 !important;
+    font-weight: 500 !important;
+    padding: 10px 20px !important;
+    border-radius: 20px !important;
+    min-width: 80px !important;
+    transition: all 0.3s !important;
+  }
+  
+  .el-message-box.ancient-confirm-dialog .el-message-box__btns .el-button.el-button--primary {
+    background: linear-gradient(135deg, #a7874b, #8b7355) !important;
+    border: 1px solid #8b7355 !important;
+    color: white !important;
+  }
+  
+  .el-message-box.ancient-confirm-dialog .el-message-box__btns .el-button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 8px rgba(155, 135, 110, 0.2) !important;
+  }
+  
+  /* 对话框底部按钮 - 正确的选择器 */
+  .ancient-dialog-footer .el-button.cancel-btn {
+    background: #f5f0e6 !important;
+    border: 1px solid #e8d4b8 !important;
+    color: #5b4636 !important;
+  }
+  
+  .ancient-dialog-footer .el-button.confirm-btn {
+    background: linear-gradient(135deg, #a7874b, #8b7355) !important;
+    border: 1px solid #8b7355 !important;
+    color: white !important;
+  }
+  
+  .ancient-dialog-footer .el-button.cancel-btn:hover,
+  .ancient-dialog-footer .el-button.confirm-btn:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 8px rgba(155, 135, 110, 0.2) !important;
+  }

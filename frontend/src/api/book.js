@@ -2,6 +2,7 @@
 import { API_CONFIG } from '@/config/api.config'
 import { mockBooks } from '@/mock/book'
 import request from '@/utils/request'  // 真实的axios实例
+import { BookValidator } from '@/utils/book-validator'
 
 // 模拟延迟
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms))
@@ -10,41 +11,40 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms))
 const mockApi = {
   // 修改 getBooksData 方法，确保始终返回统一的数据源
     getBooksData() {
-    // 首先从 localStorage 获取图书数据
-    let storedBooks = JSON.parse(localStorage.getItem('books') || 'null')
-    
-    if (storedBooks && storedBooks.length > 0) {
-      // 检查图书ID是否连续，如果不连续则重新整理
-      const maxId = Math.max(...storedBooks.map(b => Number(b.id || 0)))
-      let needsReindex = false
+      // 首先从 localStorage 获取图书数据
+      let storedBooks = JSON.parse(localStorage.getItem('books') || 'null')
       
-      // 检查是否有ID重复或不连续
-      const idSet = new Set()
-      for (const book of storedBooks) {
-        if (idSet.has(book.id)) {
-          needsReindex = true
-          break
+      if (storedBooks && storedBooks.length > 0) {
+        // 只检查是否有重复ID，如果重复则重新整理
+        let needsReindex = false
+        const idSet = new Set()
+        
+        for (const book of storedBooks) {
+          if (idSet.has(book.id)) {
+            needsReindex = true
+            break
+          }
+          idSet.add(book.id)
         }
-        idSet.add(book.id)
+        
+        // 只在ID重复时重新整理（保护性措施）
+        if (needsReindex) {
+          console.warn('发现重复图书ID，正在重新整理...')
+          storedBooks = storedBooks.map((book, index) => ({
+            ...book,
+            id: index + 1
+          }))
+          localStorage.setItem('books', JSON.stringify(storedBooks))
+        }
+        
+        return storedBooks
+      } else {
+        // 如果没有存储的数据，使用 mockBooks 并保存
+        const initialData = [...mockBooks]
+        localStorage.setItem('books', JSON.stringify(initialData))
+        return initialData
       }
-      
-      // 如果ID不连续或重复，重新整理
-      if (needsReindex || storedBooks.length !== maxId) {
-        storedBooks = storedBooks.map((book, index) => ({
-          ...book,
-          id: index + 1
-        }))
-        localStorage.setItem('books', JSON.stringify(storedBooks))
-      }
-      
-      return storedBooks
-    } else {
-      // 如果没有存储的数据，使用 mockBooks 并保存
-      const initialData = [...mockBooks]
-      localStorage.setItem('books', JSON.stringify(initialData))
-      return initialData
-    }
-  },
+    },
   
   // 保存图书数据到 localStorage
   saveBooksData(books) {
@@ -153,6 +153,7 @@ const mockApi = {
       
       // 检查ISBN是否已存在（标准化比较）
       const existingBook = allBooks.find(b => {
+        if (!b || !b.isbn) return false
         const existingIsbn = String(b.isbn).trim()
         return existingIsbn === normalizedNewIsbn
       })
@@ -179,27 +180,49 @@ const mockApi = {
       }
     }
     
-    // 改进的ID生成逻辑：找到最大ID + 1，确保是数字
+    // **关键修复：改进的ID生成逻辑**
     let maxId = 0
-    if (allBooks.length > 0) {
-      // 确保所有ID都是数字
-      const numericIds = allBooks.map(b => Number(b.id)).filter(id => !isNaN(id))
+    if (allBooks && allBooks.length > 0) {
+      // 确保所有ID都是数字，并处理可能的非数字ID
+      const numericIds = allBooks
+        .map(b => {
+          if (!b || !b.id) return 0
+          const id = Number(b.id)
+          return !isNaN(id) ? id : 0
+        })
+        .filter(id => id > 0)
+      
       if (numericIds.length > 0) {
         maxId = Math.max(...numericIds)
       }
     }
     
+    // **修复：确保新ID是连续的正整数**
+    const newId = maxId + 1
+    console.log(`🔢 生成新图书ID: ${newId}, 当前最大ID: ${maxId}, 图书总数: ${allBooks.length}`)
+    
+    // **修复：正确处理表单数据**
     const newBook = {
-      id: maxId + 1,
-      ...bookData,
-      // 确保 availableCopies 不会超过 totalCopies
+      id: newId,
+      isbn: bookData.isbn ? String(bookData.isbn).trim() : '',
+      title: bookData.title || '',
+      author: bookData.author || '',
+      category: Number(bookData.category) || 1,
+      publisher: bookData.publisher || '',
+      publishYear: Number(bookData.publishYear) || new Date().getFullYear(),
+      totalCopies: Number(bookData.totalCopies) || 1,
       availableCopies: Math.min(
-        bookData.availableCopies || bookData.totalCopies || 1, 
-        bookData.totalCopies || 1
+        Number(bookData.availableCopies) || Number(bookData.totalCopies) || 1,
+        Number(bookData.totalCopies) || 1
       ),
+      location: bookData.location || '',
+      description: bookData.description || '',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }
+    
+    // **修复：确保数据有效性**
+    console.log('📝 准备添加的图书:', newBook)
     
     // 添加到数组
     allBooks.unshift(newBook)
@@ -207,13 +230,33 @@ const mockApi = {
     // 保存到 localStorage
     this.saveBooksData(allBooks)
     
-    // 同时也更新内存中的 mockBooks，保持同步
+    // 同步更新 mockBooks
     this.syncMockBooks(allBooks)
     
+    // **新增：验证保存结果**
+    const savedBooks = JSON.parse(localStorage.getItem('books') || '[]')
+    console.log('💾 保存后检查:')
+    console.log(`   - localStorage图书总数: ${savedBooks.length}`)
+    console.log(`   - 新图书是否保存: ${savedBooks.some(b => b.id === newId)}`)
+    if (savedBooks.length > 0) {
+      console.log(`   - 最新图书ID: ${savedBooks[0].id}, 书名: ${savedBooks[0].title}`)
+    }
+
+    const validatedBook = BookValidator.fixBookData(newBook)
+      if (!validatedBook || validatedBook.id <= 0) {
+        return {
+          code: 500,
+          message: '图书数据验证失败',
+          data: null
+        }
+      }
+
+      
+
     return {
       code: 200,
       message: '图书添加成功',
-      data: newBook
+      data: newBook  // 确保返回包含正确ID的对象
     }
   },
 
@@ -418,7 +461,10 @@ const mockApi = {
         publisher: book.publisher,
         publishYear: book.publishYear,
         category: book.category,
-        availableCopies: book.availableCopies
+        availableCopies: book.availableCopies,
+        totalCopies: book.totalCopies,
+        description: book.description || '',  // 添加这行
+        location: book.location || ''         // 如果需要显示位置，也可以添加
       }))
     }
   },

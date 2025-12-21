@@ -3,6 +3,7 @@ import { API_CONFIG } from '@/config/api.config'
 import { mockUsers } from '@/mock/user'
 import { mockBorrowRecords } from '@/mock/borrow-data'
 import request from '@/utils/request'  // 真实的axios实例
+import { getBorrowRecords, saveBorrowRecords } from '@/mock/borrow-data'
 
 // 模拟延迟
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms))
@@ -37,6 +38,106 @@ function syncUserDataToAllSources(updatedUser, shouldUpdateCurrentUser = false) 
 
 // 模拟数据API
 const mockApi = {
+
+  // 修改 deleteUser 方法（在 mockApi 对象中）
+  async deleteUser(userId) {
+   await delay(API_CONFIG.MOCK_DELAY || 500)
+    
+    // 1. 检查当前登录用户不能删除自己
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+    if (currentUser.id === Number(userId)) {
+      return {
+        code: 400,
+        message: '不能删除当前登录的用户',
+        data: null
+      }
+    }
+    
+    // 2. 检查用户是否存在
+    const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
+    const userIndex = registeredUsers.findIndex(u => u.id === Number(userId))
+    
+    // 如果不在registeredUsers中，检查mockUsers
+    let userSource = 'registered'
+    let mockUserIndex = -1
+    if (userIndex === -1) {
+      mockUserIndex = mockUsers.findIndex(u => u.id === Number(userId))
+      userSource = 'mock'
+    }
+    
+    if (userIndex === -1 && mockUserIndex === -1) {
+      return {
+        code: 404,
+        message: '用户不存在',
+        data: null
+      }
+    }
+
+    const borrowRecords = getBorrowRecords()
+
+    // 3. 获取用户的借阅记录
+    const userBorrowRecords = borrowRecords.filter(record => 
+      record.userId === Number(userId)
+   )
+    
+    // 检查是否有未归还的图书
+    const unreturnedRecords = userBorrowRecords.filter(record => 
+      !record.returnDate && (record.status === 'BORROWED' || record.status === 'OVERDUE')
+    )
+    
+    // 4. 如果有未归还的图书，更新相关图书的库存
+    if (unreturnedRecords.length > 0) {
+      // 获取图书数据 - 使用统一的数据源
+      const storedBooks = JSON.parse(localStorage.getItem('books') || 'null')
+      const books = storedBooks || mockBooks
+      
+      unreturnedRecords.forEach(record => {
+        const bookIndex = books.findIndex(book => Number(book.id) === Number(record.bookId))
+        if (bookIndex !== -1) {
+          // 增加图书的可用库存（因为借阅记录会被删除）
+          books[bookIndex].availableCopies = (Number(books[bookIndex].availableCopies) || 0) + 1
+        }
+      })
+      
+      // 保存更新后的图书数据
+      localStorage.setItem('books', JSON.stringify(books))
+      
+      // 同时更新mockBooks（用于内存中的一致性）
+      if (!storedBooks) {
+        unreturnedRecords.forEach(record => {
+          const mockBookIndex = mockBooks.findIndex(book => Number(book.id) === Number(record.bookId))
+          if (mockBookIndex !== -1) {
+            mockBooks[mockBookIndex].availableCopies = (Number(mockBooks[mockBookIndex].availableCopies) || 0) + 1
+          }
+        })
+      }
+    }
+    
+    // 5. 删除该用户的所有借阅记录
+    const updatedBorrowRecords = borrowRecords.filter(record => record.userId !== Number(userId))
+    saveBorrowRecords(updatedBorrowRecords)
+    
+    // 6. 删除用户
+    if (userSource === 'mock' && mockUserIndex !== -1) {
+      mockUsers.splice(mockUserIndex, 1)
+      // 同时从registeredUsers中删除（如果存在）
+      const regIndex = registeredUsers.findIndex(u => u.id === Number(userId))
+      if (regIndex !== -1) {
+        registeredUsers.splice(regIndex, 1)
+      }
+    } else if (userIndex !== -1) {
+      registeredUsers.splice(userIndex, 1)
+    }
+    
+    localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers))
+    
+    return {
+      code: 200,
+      message: `用户删除成功${unreturnedRecords.length > 0 ? `，并已清理${unreturnedRecords.length}条未归还的借阅记录` : ''}`,
+      data: null
+    }
+  },
+
   // 获取用户列表（分页+搜索）
   async getUsers(params = {}) {
     await delay(API_CONFIG.MOCK_DELAY || 500)
@@ -130,7 +231,8 @@ const mockApi = {
     
     if (user) {
       // 查找用户的借阅记录 - 确保正确匹配用户ID
-      const userBorrowRecords = mockBorrowRecords
+      const borrowRecords = getBorrowRecords()  // 修改这行
+      const userBorrowRecords = borrowRecords  // 修改这行
       .filter(record => {
         // 确保两个ID都是数字类型再比较
         const recordUserId = Number(record.userId)
@@ -355,6 +457,11 @@ const mockApi = {
 
 // 真实API
 const realApi = {
+
+  async deleteUser(userId) {
+  return request.delete(`/users/${userId}`)
+},
+
   // 获取用户列表（分页+搜索）
   async getUsers(params) {
     return request.get('/users', { params })

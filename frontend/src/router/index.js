@@ -98,16 +98,24 @@ router.beforeEach((to, from, next) => {
   // 检查角色权限
   if (to.meta.requiresAuth) {
     // 如果是管理员页面，检查用户是否是管理员
-    if ((to.meta.role === 'ADMIN' || to.meta.requiresAdmin) && user.role !== 'ADMIN') {
-      alert('无权访问管理员页面')
-      next('/user')
-      return
+    if ((to.meta.role === 'ADMIN' || to.meta.requiresAdmin)) {
+      if (user.role !== 'ADMIN') {
+        alert('无权访问管理员页面')
+        next('/user')
+        return
+      }
     }
     
-    // 如果是用户页面，检查用户是否是普通用户
-    if (to.meta.role === 'USER' && user.role !== 'USER') {
-      alert('普通用户无法访问管理员页面')
-      next('/admin')
+    // 如果是用户页面，允许普通用户和管理员访问
+    if (to.meta.role === 'USER') {
+      // 允许普通用户和管理员访问用户页面
+      if (user.role === 'USER' || user.role === 'ADMIN') {
+        next()
+        return
+      }
+      
+      alert('请以用户或管理员身份登录')
+      next('/user/login')
       return
     }
   }

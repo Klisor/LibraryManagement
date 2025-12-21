@@ -1,48 +1,45 @@
 <template>
-  <div class="my-borrow">
-    <!-- 顶部导航栏（复用BookList的样式） -->
-    <div class="top-navbar">
-      <div class="nav-container">
-        <div class="nav-left">
-          <div class="logo">
-            <h2>📚 图书管理系统</h2>
-          </div>
-          <ul class="nav-menu">
-            <li :class="{ active: $route.path === '/user' }">
-              <router-link to="/user">首页</router-link>
-            </li>
-            <li :class="{ active: $route.path === '/user/books' }">
-              <router-link to="/user/books">图书列表</router-link>
-            </li>
-            <li :class="{ active: $route.path === '/user/borrow' }">
-              <router-link to="/user/borrow">我的借阅</router-link>
-            </li>
-            <li :class="{ active: $route.path === '/user/personal' }">
-              <router-link to="/user/personal">个人中心</router-link>
-            </li>
-          </ul>
+  <div class="my-borrow ancient-page">
+    <!-- 顶部导航栏（与Home.vue和Personal.vue保持一致） -->
+    <el-header class="user-header ancient-header">
+      <div class="header-content">
+        <div class="logo">
+          <img src="../../assets/image/icons/book1.png" alt="图书管理系统" class="logo-img">
+          <h2>知行书阁</h2>
         </div>
-        <div class="nav-right">
-          <el-dropdown>
-            <span class="user-info">
-              <el-avatar size="small">{{ user.username.charAt(0) }}</el-avatar>
-              <span class="username">{{ user.username }}</span>
+
+        <div class="nav-center">
+          <el-menu mode="horizontal" :default-active="activeNav" @select="handleNavSelect">
+            <el-menu-item index="home">首页</el-menu-item>
+            <el-menu-item index="books">图书列表</el-menu-item>
+            <el-menu-item index="borrow">我的借阅</el-menu-item>
+            <el-menu-item index="personal">个人中心</el-menu-item>
+          </el-menu>
+        </div>
+        <div class="user-info">
+          <el-dropdown @command="handleCommand">
+            <span class="el-dropdown-link">
+              <i class="el-icon-user"></i>
+              {{ user.username }}
               <i class="el-icon-arrow-down el-icon--right"></i>
             </span>
             <el-dropdown-menu slot="dropdown">
-              <el-dropdown-item @click.native="goToPersonal">个人中心</el-dropdown-item>
-              <el-dropdown-item divided @click.native="logout">退出登录</el-dropdown-item>
+              <el-dropdown-item command="profile">个人资料</el-dropdown-item>
+              <el-dropdown-item command="notes">我的笔记</el-dropdown-item>
+              <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
             </el-dropdown-menu>
           </el-dropdown>
         </div>
       </div>
-    </div>
+    </el-header>
 
     <!-- 主要内容区 -->
     <div class="main-content">
       <!-- 页面标题和统计 -->
-      <div class="page-header">
-        <h1>我的借阅</h1>
+      <div class="page-header ancient-section">
+        <h1 class="ancient-title">
+          <img src="../../assets/image/icons/book.png" class="title-icon" /> 我的借阅
+        </h1>
         <div class="stats">
           <div class="stat-item">
             <div class="stat-label">当前借阅</div>
@@ -64,7 +61,7 @@
       </div>
 
       <!-- 标签页切换 -->
-      <el-tabs v-model="activeTab" class="borrow-tabs">
+      <el-tabs v-model="activeTab" class="borrow-tabs ancient-tabs" @tab-click="handleTabClick">
         <el-tab-pane label="当前借阅" name="current">
           <!-- 当前借阅列表 -->
           <div class="borrow-list">
@@ -72,10 +69,10 @@
               <el-skeleton :rows="5" animated />
             </div>
             
-            <div v-else-if="currentBorrows.length === 0" class="empty-container">
+            <div v-else-if="currentBorrows.length === 0" class="empty-container ancient-empty">
               <el-empty description="暂无当前借阅记录"></el-empty>
               <div class="empty-action">
-                <el-button type="primary" @click="goToBookList">去借书</el-button>
+                <el-button type="primary" class="ancient-btn" @click="goToBookList">去借书</el-button>
               </div>
             </div>
             
@@ -83,12 +80,12 @@
               <div
                 v-for="record in currentBorrows"
                 :key="record.id"
-                class="borrow-card"
+                class="borrow-card ancient-card"
                 :class="getCardClass(record.dueDate)"
               >
                 <div class="card-header">
                   <h3 class="book-title">{{ record.bookTitle }}</h3>
-                  <el-tag :type="getStatusTagType(record)" size="small">
+                  <el-tag :type="getStatusTagType(record)" size="small" class="ancient-tag">
                     {{ getStatusText(record) }}
                   </el-tag>
                 </div>
@@ -122,6 +119,7 @@
                   <el-button
                     size="small"
                     type="primary"
+                    class="ancient-btn"
                     @click="viewBookDetail(record.bookId)"
                   >
                     查看图书
@@ -130,6 +128,7 @@
                   <el-button
                     size="small"
                     type="warning"
+                    class="ancient-btn"
                     @click="handleRenew(record)"
                     :disabled="!canRenew(record)"
                   >
@@ -144,14 +143,15 @@
         <el-tab-pane label="借阅历史" name="history">
           <!-- 借阅历史列表 -->
           <div class="history-list">
-            <div class="search-filter">
+            <div class="search-filter ancient-filter">
               <el-input
                 v-model="historyKeyword"
                 placeholder="搜索书名"
-                style="width: 300px; margin-right: 10px;"
+                class="ancient-input"
+                style="width: 300px;"
                 @keyup.enter.native="loadHistory"
               >
-                <el-button slot="append" icon="el-icon-search" @click="loadHistory"></el-button>
+                <el-button slot="append" icon="el-icon-search" @click="loadHistory" class="search-append-btn"></el-button>
               </el-input>
               
               <el-select
@@ -159,30 +159,33 @@
                 placeholder="状态筛选"
                 clearable
                 @change="loadHistory"
-                style="width: 150px; margin-right: 10px;"
+                class="ancient-select"
+                style="width: 150px;"
               >
                 <el-option label="已归还" value="RETURNED"></el-option>
                 <el-option label="已逾期" value="OVERDUE"></el-option>
               </el-select>
               
-              <el-button @click="resetHistoryFilter">重置</el-button>
+              <el-button @click="resetHistoryFilter" class="ancient-btn reset-btn">重置</el-button>
             </div>
             
             <div v-if="historyLoading" class="loading-container">
               <el-skeleton :rows="5" animated />
             </div>
             
-            <div v-else-if="historyRecords.length === 0" class="empty-container">
+            <div v-else-if="historyRecords.length === 0" class="empty-container ancient-empty">
               <el-empty description="暂无借阅历史记录"></el-empty>
             </div>
             
-            <div v-else class="history-table">
+            <div v-else class="history-table ancient-table">
               <el-table
                 :data="historyRecords"
                 border
                 stripe
                 style="width: 100%;"
                 :default-sort="{prop: 'borrowDate', order: 'descending'}"
+                class="ancient-table"
+                :row-style="{height: '60px'}"
               >
                 <el-table-column prop="bookTitle" label="图书名称" min-width="200"></el-table-column>
                 <el-table-column prop="borrowDate" label="借阅日期" width="150" sortable>
@@ -203,7 +206,7 @@
                 <el-table-column prop="renewedCount" label="续借次数" width="100"></el-table-column>
                 <el-table-column prop="status" label="状态" width="100">
                   <template slot-scope="scope">
-                    <el-tag :type="getStatusTagType(scope.row)" size="small">
+                    <el-tag :type="getStatusTagType(scope.row)" size="small" class="ancient-tag">
                       {{ getStatusText(scope.row) }}
                     </el-tag>
                   </template>
@@ -213,6 +216,7 @@
                     <el-button
                       size="mini"
                       type="primary"
+                      class="table-action-btn"
                       @click="viewBookDetail(scope.row.bookId)"
                     >
                       查看
@@ -221,7 +225,7 @@
                 </el-table-column>
               </el-table>
               
-              <div v-if="historyTotal > 0" class="pagination-container">
+              <div v-if="historyTotal > 0" class="pagination-container ancient-pagination">
                 <el-pagination
                   @size-change="handleHistorySizeChange"
                   @current-change="handleHistoryPageChange"
@@ -242,11 +246,13 @@
     
     <!-- 图书详情对话框 -->
     <el-dialog
-      title="图书详情"
+      :title="selectedBookId ? '📖 图书详情' : '图书详情'"
       :visible.sync="bookDetailVisible"
-      width="600px"
+      width="850px"
+      @closed="selectedBookId = null"
+      custom-class="ancient-dialog"
     >
-      <book-detail
+      <BookDetail
         v-if="selectedBookId"
         :book-id="selectedBookId"
         @close="bookDetailVisible = false"
@@ -258,6 +264,7 @@
       title="续借确认"
       :visible.sync="renewDialogVisible"
       width="400px"
+      custom-class="ancient-dialog"
     >
       <div v-if="recordToRenew" class="renew-confirm">
         <p>确定要为《{{ recordToRenew.bookTitle }}》续借15天吗？</p>
@@ -266,8 +273,8 @@
         <p>新应还日期：{{ formatDate(getNewDueDate(recordToRenew.dueDate)) }}</p>
       </div>
       <div slot="footer" class="dialog-footer">
-        <el-button @click="renewDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="confirmRenew" :loading="renewing">
+        <el-button @click="renewDialogVisible = false" class="ancient-btn">取消</el-button>
+        <el-button type="primary" @click="confirmRenew" :loading="renewing" class="ancient-btn">
           确定续借
         </el-button>
       </div>
@@ -286,6 +293,9 @@ export default {
   },
   data() {
     return {
+      // 导航激活状态
+      activeNav: 'borrow',
+      
       // 用户信息
       user: JSON.parse(localStorage.getItem('user') || '{}'),
       
@@ -322,21 +332,78 @@ export default {
     }
   },
   mounted() {
-      // 检查用户是否登录
-      if (!this.user.id || this.user.role !== 'USER') {
-        this.$router.push('/user/login')
-        return
-      }
-      
-      console.log('当前用户信息:', this.user)
-      console.log('用户ID:', this.user.id)
-      console.log('用户名:', this.user.username)
-      
-      // 加载数据
-      this.loadCurrentBorrows()
-      this.loadHistory()
-    },
+    // 检查是否登录 - 允许普通用户和管理员
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    if (!user.id) {
+      this.$router.push('/user/login')
+      return
+    }
+
+    // 检查用户权限 - 允许普通用户和管理员访问
+    if (user.role !== 'USER' && user.role !== 'ADMIN') {
+      this.$message.warning('请以用户或管理员身份登录')
+      this.$router.push('/user/login')
+      return
+    }
+
+    // 确保本地user数据与localStorage同步
+    this.user = user
+
+    console.log('当前用户信息:', this.user)
+    console.log('用户ID:', this.user.id)
+    console.log('用户名:', this.user.username)
+    
+    // 加载数据
+    this.loadCurrentBorrows()
+    this.loadHistory()
+  },
   methods: {
+    // 标签页点击处理
+    handleTabClick(tab) {
+      // 这里可以添加标签页切换时的逻辑
+      console.log('切换到标签:', tab.name)
+    },
+    
+    // 导航菜单选择
+    handleNavSelect(index) {
+      this.activeNav = index
+      switch (index) {
+        case 'home':
+          if (this.$route.path !== '/user') {
+            this.$router.push('/user')
+          }
+          break
+        case 'books':
+          this.$router.push('/user/books')
+          break
+        case 'borrow':
+          if (this.$route.path !== '/user/borrow') {
+            this.$router.push('/user/borrow')
+          }
+          break
+        case 'personal':
+          this.$router.push('/user/personal')
+          break
+        default:
+          break
+      }
+    },
+    
+    // 用户下拉菜单命令处理
+    handleCommand(command) {
+      if (command === 'logout') {
+        this.logout()
+      } else if (command === 'profile' || command === 'notes') {
+        this.$router.push('/user/personal')
+      }
+    },
+    
+    // 退出登录
+    logout() {
+      localStorage.removeItem('user')
+      this.$router.push('/user/login')
+    },
+    
     // 加载当前借阅数据
     async loadCurrentBorrows() {
       this.currentLoading = true
@@ -344,18 +411,16 @@ export default {
         const params = {
           page: 1,
           size: 100,
-          // 不指定状态，获取所有状态的记录，然后在前端过滤
           userId: this.user.id
         }
         
         const res = await borrowApi.getBorrowRecords(params)
         
         if (res.code === 200) {
-          // 当前借阅 = 状态为 BORROWED 的记录
           this.currentBorrows = res.data.list.filter(record => 
             record.status === 'BORROWED'
           )
-          this.updateStats(res.data.list)  // 传入所有记录进行统计
+          this.updateStats(res.data.list)
         } else {
           this.$message.error(res.message)
         }
@@ -369,21 +434,17 @@ export default {
     
     // 更新统计数据
     updateStats(records) {
-      // 当前借阅 = 状态为 BORROWED 的记录
       const currentBorrows = records.filter(record => record.status === 'BORROWED')
       this.currentBorrowCount = currentBorrows.length
       
-      // 可续借 = 当前借阅中且未达到最大续借次数的
       this.renewableCount = currentBorrows.filter(record => 
         record.renewedCount < record.maxRenewCount
       ).length
       
-      // 即将到期 = 当前借阅中且7天内到期的
       this.nearDueCount = currentBorrows.filter(record => 
         this.isNearDue(record.dueDate)
       ).length
       
-      // 已逾期 = 状态为 OVERDUE 的记录
       this.overdueCount = records.filter(record => 
         record.status === 'OVERDUE'
       ).length
@@ -399,12 +460,10 @@ export default {
           userId: this.user.id
         }
         
-        // 添加状态筛选
         if (this.historyStatus) {
           params.status = this.historyStatus
         }
         
-        // 添加搜索关键词
         if (this.historyKeyword.trim()) {
           params.keyword = this.historyKeyword.trim()
         }
@@ -412,7 +471,6 @@ export default {
         const res = await borrowApi.getBorrowRecords(params)
         
         if (res.code === 200) {
-          // 借阅历史 = 状态不为 BORROWED 的记录（包括 RETURNED 和 OVERDUE）
           this.historyRecords = res.data.list
           this.historyTotal = res.data.total
         } else {
@@ -470,11 +528,9 @@ export default {
           this.$message.success('续借成功')
           this.renewDialogVisible = false
           
-          // **修复：根据当前标签页刷新数据**
           if (this.activeTab === 'current') {
             this.loadCurrentBorrows()
           } else {
-            // 如果在历史标签页，也刷新当前借阅（因为续借会影响当前借阅状态）
             this.loadCurrentBorrows()
           }
         } else {
@@ -491,24 +547,21 @@ export default {
     
     // 查看图书详情
     viewBookDetail(bookId) {
-      this.selectedBookId = bookId
-      this.bookDetailVisible = true
+      if (this.bookDetailVisible) {
+        this.bookDetailVisible = false
+        this.$nextTick(() => {
+          this.selectedBookId = bookId
+          this.bookDetailVisible = true
+        })
+      } else {
+        this.selectedBookId = bookId
+        this.bookDetailVisible = true
+      }
     },
     
     // 跳转到图书列表
     goToBookList() {
       this.$router.push('/user/books')
-    },
-    
-    // 跳转到个人中心
-    goToPersonal() {
-      this.$router.push('/user/personal')
-    },
-    
-    // 退出登录
-    logout() {
-      localStorage.removeItem('user')
-      this.$router.push('/user/login')
     },
     
     // 工具函数
@@ -523,7 +576,7 @@ export default {
       const due = new Date(dueDate)
       const now = new Date()
       const diffDays = Math.ceil((due - now) / (1000 * 60 * 60 * 24))
-      return diffDays > 0 && diffDays <= 7 // 7天内到期
+      return diffDays > 0 && diffDays <= 7
     },
     
     isOverdue(dueDate) {
@@ -552,10 +605,12 @@ export default {
       return ''
     },
     
+    // 修改状态标签类型，将借阅中改为金色系
     getStatusTagType(record) {
       if (this.isOverdue(record.dueDate)) return 'danger'
       if (this.isNearDue(record.dueDate)) return 'warning'
       if (record.status === 'RETURNED') return 'success'
+      // 借阅中状态使用金色系，设置为'primary'但我们会自定义样式
       return 'primary'
     },
     
@@ -568,7 +623,7 @@ export default {
     
     getNewDueDate(currentDueDate) {
       const newDate = new Date(currentDueDate)
-      newDate.setDate(newDate.getDate() + 15) // 续借15天
+      newDate.setDate(newDate.getDate() + 15)
       return newDate.toISOString()
     }
   }
@@ -576,90 +631,122 @@ export default {
 </script>
 
 <style scoped>
-.my-borrow {
+/* 古籍风格全局设置 */
+p,
+h1,
+h2,
+h3 {
+  font-family: "STKaiti", "KaiTi", serif;
+}
+
+/* 页面整体样式 */
+.my-borrow.ancient-page {
   min-height: 100vh;
-  background-color: #f5f7fa;
+  background-image: url('../../assets/image/home2.jpg');
+  background-size: 110% 110%;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 }
 
-/* 顶部导航栏样式（复用BookList的样式） */
-.top-navbar {
-  background-color: #fff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  position: sticky;
+/* 添加半透明遮罩层，让内容更清晰 */
+.my-borrow.ancient-page::before {
+  content: '';
+  position: fixed;
   top: 0;
-  z-index: 1000;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.85);
+  z-index: -1;
 }
 
-.nav-container {
-  max-width: 1200px;
-  margin: 0 auto;
+/* 顶部导航栏样式（与Home.vue和Personal.vue一致） */
+.user-header.ancient-header {
+  background: white;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, .1);
   padding: 0 20px;
-  height: 60px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 }
 
-.nav-left {
+.header-content {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  height: 100%;
+}
+
+.logo {
+  margin: 2px 20px;
+}
+
+.logo-img {
+  width: 25px;
+  height: 25px;
+  margin-right: 20px;
+  vertical-align: middle;
 }
 
 .logo h2 {
-  margin: 0;
-  font-size: 20px;
-  color: #409eff;
+  display: inline-block;
+  vertical-align: middle;
+  color: #7c7262;
+  font-size: 28px;
+  font-family: "STKaiti", "SimSun", serif;
 }
 
-.nav-menu {
+.nav-center {
+  flex: 1;
   display: flex;
-  list-style: none;
-  margin: 0;
-  margin-left: 40px;
-  padding: 0;
+  justify-content: center;
 }
 
-.nav-menu li {
-  margin: 0 15px;
+/* 激活项底部横条 */
+.nav-center .el-menu-item.is-active {
+  border-bottom-color: #d4b483 !important;
 }
 
-.nav-menu li a {
-  text-decoration: none;
-  color: #606266;
-  padding: 8px 12px;
-  border-radius: 4px;
-  transition: all 0.3s;
-}
-
-.nav-menu li.active a {
-  color: #409eff;
-  background-color: #ecf5ff;
-}
-
-.nav-menu li a:hover {
-  color: #409eff;
-}
-
-.nav-right {
-  display: flex;
-  align-items: center;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
+/* 用户信息区域样式 */
+.user-info .el-dropdown-link {
   cursor: pointer;
-  padding: 8px 12px;
-  border-radius: 4px;
-  transition: background-color 0.3s;
+  color: #8b7355;
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  border-radius: 20px;
+  background: rgba(250, 248, 245, 0.9);
+  border: 1px solid #e8d4b8;
+  transition: all 0.3s;
+  font-family: "STKaiti", "KaiTi", serif;
 }
 
-.user-info:hover {
-  background-color: #f5f7fa;
+.user-info .el-dropdown-link:hover {
+  background: rgba(247, 243, 236, 0.95);
+  border-color: #cbc0b1;
+  color: #5b4636;
+  box-shadow: 0 2px 8px rgba(155, 135, 110, 0.15);
 }
 
-.user-info .username {
-  margin: 0 8px;
+.user-info .el-dropdown-link i {
+  margin-right: 6px;
+  color: #a7874b;
+}
+
+.user-info .el-dropdown-link .el-icon-arrow-down {
+  margin-left: 6px;
+  font-size: 12px;
+  color: #8b7355;
+}
+
+.el-dropdown-menu {
+  background: #ffffff !important;
+  border: 1px solid #f6f1ea !important;
+  border-radius: 8px !important;
+}
+
+.el-dropdown-menu__item:hover,
+.el-dropdown-menu__item.is-hovered {
+  background-color: rgba(230, 217, 203, 0.3) !important;
+  color: #5b4636 !important;
 }
 
 /* 主要内容区 */
@@ -670,42 +757,74 @@ export default {
 }
 
 /* 页面标题和统计 */
-.page-header {
-  background-color: #fff;
+.page-header.ancient-section {
+  background: linear-gradient(
+    to bottom right,
+    rgba(255, 254, 251, 0.9),
+    rgba(255, 255, 254, 0.1)
+  );
+  backdrop-filter: blur(4px);
   padding: 30px;
-  border-radius: 8px;
+  border-radius: 12px;
   margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(238, 238, 238, 0.6);
 }
 
-.page-header h1 {
-  margin: 0 0 20px 0;
-  color: #303133;
+.page-header .ancient-title {
+  margin-bottom: 20px;
+  font-size: 28px;
+  color: #5b4636;
+  font-weight: 600;
+  position: relative;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 6px;
+  font-family: "STKaiti", "KaiTi", serif;
+}
+
+.title-icon {
+  width: 25px;
+  height: 25px;
+  margin-right: 6px;
+  margin-bottom: 6px;
+  vertical-align: middle;
 }
 
 .stats {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 20px;
 }
 
 .stat-item {
-  background-color: #f5f7fa;
-  padding: 15px 20px;
-  border-radius: 8px;
+  background: rgba(250, 248, 245, 0.8);
+  padding: 20px;
+  border-radius: 12px;
   text-align: center;
-  min-width: 120px;
+  border: 1px solid #e8d4b8;
+  transition: all 0.3s;
+  box-shadow: 0 4px 8px rgba(155, 135, 110, 0.1);
+}
+
+.stat-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(155, 135, 110, 0.2);
+  background: rgba(250, 248, 245, 1);
 }
 
 .stat-label {
-  color: #909399;
-  font-size: 14px;
-  margin-bottom: 5px;
+  color: #8b7355;
+  font-size: 15px;
+  margin-bottom: 10px;
+  font-weight: 500;
+  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
 }
 
 .stat-value {
-  font-size: 24px;
+  font-size: 32px;
   font-weight: bold;
-  color: #409eff;
+  color: #a7874b;
+  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
 }
 
 .stat-value.warning {
@@ -716,12 +835,58 @@ export default {
   color: #f56c6c;
 }
 
-/* 标签页 */
-.borrow-tabs {
-  background-color: #fff;
+/* 标签页样式 - 修改选中状态为古籍风格 */
+.borrow-tabs.ancient-tabs {
+  background: linear-gradient(
+    to bottom right,
+    rgba(255, 254, 251, 0.9),
+    rgba(255, 255, 254, 0.1)
+  );
+  backdrop-filter: blur(4px);
   padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(238, 238, 238, 0.6);
+}
+
+/* 修改标签页样式 - 参考顶边栏样式 */
+.borrow-tabs.ancient-tabs /deep/ .el-tabs__header {
+  margin-bottom: 20px;
+}
+
+.borrow-tabs.ancient-tabs /deep/ .el-tabs__nav-wrap::after {
+  background-color: #e8d4b8 !important;
+  height: 1px !important;
+}
+
+.borrow-tabs.ancient-tabs /deep/ .el-tabs__active-bar {
+  background-color: #d4b483 !important;
+  height: 2px !important;
+}
+
+/* 未选中标签页样式 - 淡一些的棕色 */
+.borrow-tabs.ancient-tabs /deep/ .el-tabs__item {
+  color: #a7874b !important;
+  font-family: "STKaiti", "KaiTi", serif !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  transition: all 0.3s !important;
+}
+
+/* 悬停状态 */
+.borrow-tabs.ancient-tabs /deep/ .el-tabs__item:hover {
+  color: #8b7355 !important;
+}
+
+/* 选中标签页样式 - 字体变黑，有金色条 */
+.borrow-tabs.ancient-tabs /deep/ .el-tabs__item.is-active {
+  color: #5b4636 !important;
+  font-weight: 600 !important;
+}
+
+/* 禁用修改蓝色focus样式 */
+.borrow-tabs.ancient-tabs /deep/ .el-tabs__item:focus.is-active.is-focus:not(:active) {
+  box-shadow: none !important;
 }
 
 /* 当前借阅样式 */
@@ -732,25 +897,26 @@ export default {
   margin-top: 20px;
 }
 
-.borrow-card {
-  border: 1px solid #ebeef5;
-  border-radius: 8px;
+.borrow-card.ancient-card {
+  border: 1px solid #e8d4b8;
+  border-radius: 12px;
   padding: 20px;
-  background-color: #fff;
+  background: #ffffff;
   transition: all 0.3s;
+  box-shadow: 0 4px 8px rgba(155, 135, 110, 0.1);
 }
 
-.borrow-card:hover {
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
+.borrow-card.ancient-card:hover {
+  box-shadow: 0 6px 16px rgba(155, 135, 110, 0.2);
+  transform: translateY(-3px);
 }
 
 .borrow-card.overdue-card {
-  border-left: 4px solid #f56c6c;
+  border-left: 5px solid #f56c6c;
 }
 
 .borrow-card.near-due-card {
-  border-left: 4px solid #e6a23c;
+  border-left: 5px solid #e6a23c;
 }
 
 .card-header {
@@ -764,9 +930,43 @@ export default {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
-  color: #303133;
+  color: #5b4636;
   flex: 1;
   margin-right: 10px;
+  font-family: "STKaiti", "KaiTi", serif;
+}
+
+/* 修改借阅状态标签样式 - 金色系 */
+.ancient-tag {
+  border-radius: 12px;
+  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+/* 自定义标签颜色 - 金色系 */
+.ancient-tag.el-tag--primary {
+  background-color: #f5e8c8 !important;
+  border-color: #e6cb93 !important;
+  color: #8b7355 !important;
+}
+
+.ancient-tag.el-tag--warning {
+  background-color: #fdf6ec !important;
+  border-color: #fbe2c4 !important;
+  color: #e6a23c !important;
+}
+
+.ancient-tag.el-tag--success {
+  background-color: #f0f9eb !important;
+  border-color: #c2e7b0 !important;
+  color: #67c23a !important;
+}
+
+.ancient-tag.el-tag--danger {
+  background-color: #fef0f0 !important;
+  border-color: #fbc4c4 !important;
+  color: #f56c6c !important;
 }
 
 .card-body {
@@ -774,44 +974,55 @@ export default {
 }
 
 .info-row {
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   display: flex;
+  color: #8b7355;
+  align-items: center;
+  font-size: 14px;
 }
 
 .info-row .label {
-  color: #909399;
   width: 80px;
   flex-shrink: 0;
+  color: #8b7355;
+  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+  font-weight: 500;
 }
 
 .info-row .value {
-  color: #606266;
+  color: #5b4636;
   flex: 1;
+  font-weight: 500;
+  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
 }
 
 .due-warning,
 .due-danger {
-  margin-top: 10px;
-  padding: 8px 12px;
-  border-radius: 4px;
+  margin-top: 15px;
+  padding: 12px;
+  border-radius: 8px;
   font-size: 14px;
   display: flex;
   align-items: center;
+  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
 }
 
 .due-warning {
-  background-color: #fdf6ec;
+  background-color: rgba(253, 246, 236, 0.8);
   color: #e6a23c;
+  border: 1px solid rgba(230, 162, 60, 0.2);
 }
 
 .due-danger {
-  background-color: #fef0f0;
+  background-color: rgba(254, 240, 240, 0.8);
   color: #f56c6c;
+  border: 1px solid rgba(245, 108, 108, 0.2);
 }
 
 .due-warning i,
 .due-danger i {
-  margin-right: 5px;
+  margin-right: 8px;
+  font-size: 16px;
 }
 
 .card-actions {
@@ -820,11 +1031,177 @@ export default {
   gap: 10px;
 }
 
+/* 古籍风格按钮 */
+.ancient-btn {
+  background: linear-gradient(to bottom, #e6e2d9, #e6e2d9);
+  border: none;
+  color: #555;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 8px 16px;
+  font-size: 14px;
+  transition: all 0.3s;
+  box-shadow: none;
+  transform: translateY(8px);
+  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+}
+
+.ancient-btn:hover {
+  background: linear-gradient(to bottom, #dcd7cd, #dcd7cd);
+  color: #333;
+  transform: translateY(4px) scale(1.03);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+.ancient-btn.el-button--primary {
+  background: #8b7355 !important;
+  color: white !important;
+}
+
+.ancient-btn.el-button--warning {
+  background: #fff5ea !important;
+  color: rgb(133, 109, 77) !important;
+  border-color: #d0b67d  !important;
+}
+
+.ancient-btn.el-button--primary:hover {
+  background: #a7874b !important;
+}
+
+.ancient-btn.el-button--warning:hover {
+  background: #e8d8c3 !important;
+}
+
+/* 重置按钮优化 */
+.reset-btn {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0 !important;
+  transform: translateY(0) !important;
+}
+
+/* 表格操作按钮 - 移除动画效果 */
+.table-action-btn {
+  background:  #a7874b !important;
+  border: none;
+  color: white !important;
+  font-weight: 500;
+  border-radius: 4px;
+  padding: 10px 12px !important;
+  font-size: 13px;
+  transform: none !important;
+  margin: 0 !important;
+  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+}
+
+.table-action-btn:hover {
+  background: #8b7355 !important;
+  transform: none !important;
+  box-shadow: 0 2px 6px rgba(155, 135, 110, 0.3);
+}
+
 /* 借阅历史样式 */
-.search-filter {
+.search-filter.ancient-filter {
   margin-bottom: 20px;
   display: flex;
   align-items: center;
+  gap: 10px;
+}
+
+/* 优化搜索筛选区域，确保按钮对齐 */
+.search-filter.ancient-filter {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.search-filter .ancient-input,
+.search-filter .ancient-select,
+.search-filter .ancient-btn {
+  height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+/* 修复搜索输入框和按钮的样式问题 */
+.search-filter .ancient-input {
+  flex: 0 0 auto;
+  width: 300px;
+}
+
+.search-filter .ancient-input /deep/ .el-input__inner {
+  border: 1px solid #e8d4b8 !important;
+  border-radius: 6px 0 0 6px !important;
+  background-color: #fffffe !important;
+  color: #5b4636 !important;
+  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+  font-size: 14px;
+  height: 40px;
+  line-height: 40px;
+}
+
+/* 修复搜索按钮样式 */
+.search-filter .ancient-input /deep/ .el-input-group__append {
+  background-color: #e6e2d9 !important;
+  border: 1px solid #e8d4b8 !important;
+  border-left: none !important;
+  border-radius: 0 6px 6px 0 !important;
+  padding: 0 15px !important;
+  height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+.search-filter .ancient-input /deep/ .el-input-group__append .el-button {
+  background: transparent !important;
+  border: none !important;
+  color: #5b4636 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  transform: none !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.search-filter .ancient-input /deep/ .el-input-group__append .el-button:hover {
+  background: rgba(212, 180, 131, 0.2) !important;
+  color: #3c2c1e !important;
+}
+
+/* 专门为搜索附加按钮添加的样式 */
+.search-append-btn {
+  background: transparent !important;
+  border: none !important;
+  color: #5b4636 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  transform: none !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.search-append-btn:hover {
+  background: rgba(212, 180, 131, 0.2) !important;
+  color: #3c2c1e !important;
+}
+
+.ancient-select {
+  flex: 0 0 auto;
+  width: 150px;
+}
+
+.ancient-select /deep/ .el-input__inner {
+  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+  font-size: 14px;
+  height: 40px;
+  line-height: 40px;
 }
 
 .loading-container,
@@ -833,46 +1210,132 @@ export default {
   text-align: center;
 }
 
+.ancient-empty {
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 12px;
+  padding: 40px;
+  border: 1px dashed #e8d4b8;
+}
+
 .empty-action {
   margin-top: 20px;
 }
 
-.pagination-container {
+/* 古籍风格表格 */
+.history-table.ancient-table {
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #e8d4b8;
+}
+
+.ancient-table /deep/ .el-table {
+  background: transparent;
+}
+
+.ancient-table /deep/ .el-table th {
+  background: #f5f0e6 !important;
+  color: #5b4636 !important;
+  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+  font-weight: bold;
+  border-bottom: 1px solid #e8d4b8;
+  padding: 12px 0 !important;
+  height: 48px !important;
+  font-size: 15px;
+}
+
+.ancient-table /deep/ .el-table td {
+  background: rgba(255, 255, 255, 0.7);
+  color: #5b4636;
+  border-bottom: 1px solid #f0e6d3;
+  padding: 8px 0 !important;
+  vertical-align: middle !important;
+  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+  font-size: 14px;
+}
+
+.ancient-table /deep/ .el-table__row {
+  height: 60px !important;
+}
+
+.ancient-table /deep/ .el-table__row td {
+  vertical-align: middle !important;
+}
+
+.ancient-table /deep/ .el-table--striped .el-table__body tr.el-table__row--striped td {
+  background: rgba(245, 240, 230, 0.5);
+}
+
+.ancient-table /deep/ .el-table--enable-row-hover .el-table__body tr:hover>td {
+  background: rgba(232, 212, 184, 0.3);
+}
+
+.ancient-table /deep/ .el-table--border {
+  border: 1px solid #e8d4b8;
+}
+
+.ancient-table /deep/ .el-table--border th,
+.ancient-table /deep/ .el-table--border td {
+  border-right: 1px solid #e8d4b8;
+}
+
+/* 分页样式 */
+.pagination-container.ancient-pagination {
   margin-top: 20px;
   text-align: center;
+}
+
+.ancient-pagination /deep/ .el-pagination.is-background .btn-prev,
+.ancient-pagination /deep/ .el-pagination.is-background .btn-next,
+.ancient-pagination /deep/ .el-pagination.is-background .el-pager li {
+  color: #8b7355;
+  border: 1px solid #e8d4b8;
+  background: #fffbf6;
+  font-weight: 500;
+  transition: all 0.3s;
+  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+  font-size: 14px;
+}
+
+.ancient-pagination /deep/ .el-pagination.is-background .btn-prev:hover,
+.ancient-pagination /deep/ .el-pagination.is-background .btn-next:hover,
+.ancient-pagination /deep/ .el-pagination.is-background .el-pager li:hover {
+  color: #5b4636;
+  background: #e8dbc9;
+  border-color: #d4b483;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(155, 135, 110, 0.2);
+}
+
+.ancient-pagination /deep/ .el-pagination.is-background .el-pager li.active {
+  background: #8b7355;
+  border-color: #3c2c1e !important;
+  color: white !important;
+  font-weight: bold;
+  box-shadow: 0 2px 8px rgba(91, 70, 54, 0.4);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.ancient-pagination /deep/ .el-pagination.is-background .el-pager li.active:hover {
+  background: #554d39 !important;
 }
 
 /* 续借确认对话框 */
 .renew-confirm p {
   margin: 10px 0;
   color: #606266;
+  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+  font-size: 15px;
 }
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .nav-container {
-    padding: 0 10px;
-  }
-  
-  .nav-menu {
-    margin-left: 20px;
-  }
-  
-  .nav-menu li {
-    margin: 0 5px;
-  }
-  
-  .nav-menu li a {
-    padding: 6px 8px;
-    font-size: 14px;
-  }
-  
   .main-content {
     padding: 0 10px;
   }
   
   .stats {
-    flex-wrap: wrap;
+    grid-template-columns: repeat(2, 1fr);
     gap: 10px;
   }
   
@@ -882,6 +1345,35 @@ export default {
   
   .borrow-cards {
     grid-template-columns: 1fr;
+  }
+  
+  .search-filter.ancient-filter {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .ancient-input,
+  .ancient-select,
+  .reset-btn {
+    width: 100% !important;
+    margin-bottom: 10px;
+    height: 40px !important;
+  }
+  
+  /* 移动端标签页样式调整 */
+  .borrow-tabs.ancient-tabs /deep/ .el-tabs__item {
+    font-size: 14px !important;
+    padding: 0 12px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats {
+    grid-template-columns: 1fr;
+  }
+  
+  .stat-item {
+    min-width: 100%;
   }
 }
 </style>

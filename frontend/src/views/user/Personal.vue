@@ -384,18 +384,29 @@ export default {
       availableBooks: []
     }
   },
-  computed: {
-    // 当前用户可借阅的书籍
-    userMaxBorrow() {
-      return this.user.role === 'ADMIN' ? 50 : 20
-    }
-  },
+  // computed: {
+  //   // 当前用户可借阅的书籍
+  //   userMaxBorrow() {
+  //     return this.user.role === 'ADMIN' ? 50 : 20
+  //   }
+  // },
   mounted() {
     // 检查用户是否登录
-    if (!this.user.id || this.user.role !== 'USER') {
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    if (!user.id) {
       this.$router.push('/user/login')
       return
     }
+
+    // 检查用户权限 - 允许普通用户和管理员访问
+    if (user.role !== 'USER' && user.role !== 'ADMIN') {
+      this.$message.warning('请以用户或管理员身份登录')
+      this.$router.push('/user/login')
+      return
+    }
+
+    // 更新 data 中的 user 对象
+    this.user = user
 
     // 加载数据
     this.loadUserInfo()
@@ -442,7 +453,7 @@ export default {
       // 如果是笔记，可以滚动到笔记部分或激活笔记标签
       if (command === 'notes') {
         // 触发滚动到笔记部分
-        this.scrollToNotesSection()
+        // this.scrollToNotesSection() // 这个方法未定义
       }
     }
   }
@@ -458,9 +469,21 @@ export default {
       try {
         const res = await userApi.getUserDetail(this.user.id)
         if (res.code === 200) {
-          this.user = res.data
-          // 更新localStorage中的用户信息
-          localStorage.setItem('user', JSON.stringify(this.user))
+          // 保存当前用户的临时身份标记（如果是管理员以用户身份登录）
+          const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+          const isAdminLoggedAsUser = currentUser.isAdminLoggedAsUser || false
+          const originalRole = currentUser.originalRole || null
+          
+          // 合并API返回的数据和临时身份标记
+          const userData = {
+            ...res.data,
+            isAdminLoggedAsUser,
+            originalRole
+          }
+          
+          this.user = userData
+          // 更新localStorage中的用户信息（保留临时身份标记）
+          localStorage.setItem('user', JSON.stringify(userData))
         }
       } catch (error) {
         console.error('加载用户信息失败:', error)
