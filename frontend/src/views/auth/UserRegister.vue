@@ -113,24 +113,59 @@ export default {
         
         // 模拟注册过程
         setTimeout(() => {
-          // 模拟用户注册成功
-          localStorage.setItem('user', JSON.stringify({
-            id: Date.now(),
-            username: this.form.username,
-            role: 'USER',
-            email: this.form.email,
-            maxBorrowCount: 5,
-            borrowedCount: 0,
-            createdAt: new Date().toISOString()
-          }))
+          // 1. 获取已注册的用户列表
+          const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
           
-          this.$message.success('注册成功！')
+          // 2. 检查用户名是否已存在（包括模拟用户和已注册用户）
+          const mockUsers = [
+            { username: 'admin', password: '123456', email: 'admin@example.com' },
+            { username: 'user1', password: '123456', email: 'user1@example.com' },
+            { username: '李四', password: '123456', email: 'lisi@example.com' },
+            { username: '王五', password: '123456', email: 'wangwu@example.com' },
+            { username: '赵六', password: '123456', email: 'zhaoliu@example.com' }
+          ]
+          
+          const allUsers = [...mockUsers, ...registeredUsers]
+          
+          const usernameExists = allUsers.some(user => user.username === this.form.username)
+          if (usernameExists) {
+            this.$message.error('用户名已存在')
+            this.loading = false
+            return
+          }
+          
+          // 3. 检查邮箱是否已存在
+          const emailExists = allUsers.some(user => user.email === this.form.email)
+          if (emailExists) {
+            this.$message.error('邮箱已存在')
+            this.loading = false
+            return
+          }
+          
+          // 4. 创建新用户（普通用户）
+          const newUser = {
+            id: Date.now(), // 使用时间戳作为ID
+            username: this.form.username,
+            password: this.form.password,
+            email: this.form.email,
+            role: 'USER', // 固定为普通用户
+            maxBorrowCount: 5, // 普通用户默认5本
+            borrowedCount: 0,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }
+          
+          // 5. 将新用户添加到注册用户列表
+          registeredUsers.push(newUser)
+          localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers))
+          
+          this.$message.success('注册成功！请登录')
           this.loading = false
           
-          // 自动登录并跳转到用户首页
+          // 6. 跳转到登录页面，而不是直接登录
           setTimeout(() => {
-            this.$router.push('/user')
-          }, 500)
+            this.$router.push('/user/login')
+          }, 800)
         }, 800)
       })
     }

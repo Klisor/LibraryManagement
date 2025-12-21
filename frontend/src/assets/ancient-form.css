@@ -1,0 +1,99 @@
+/* ============ 古籍风格表单组件全局样式 ============ */
+
+/* 注意：全局CSS文件中不能使用 /deep/，需要使用更具体的选择器 */
+
+/* 1. 输入框基础样式 */
+.el-input__inner,
+.el-textarea__inner,
+.el-select .el-input__inner,
+.el-autocomplete .el-input__inner {
+  background-color: #fffffe !important;
+  border: 1px solid #e8d4b8 !important;
+  color: #5b4636 !important;
+  transition: all 0.3s !important;
+  border-radius: 6px !important;
+}
+
+/* 2. 输入框聚焦状态 */
+.el-input.is-focus .el-input__inner,
+.el-textarea.is-focus .el-textarea__inner,
+.el-select.is-focus .el-input__inner,
+.el-autocomplete.is-focus .el-input__inner {
+  border-color: #d4b483 !important;
+  box-shadow: 0 0 0 2px rgba(212, 180, 131, 0.2) !important;
+  background-color: #fffdfa !important;
+}
+
+.el-input__inner:focus,
+.el-textarea__inner:focus {
+  border-color: #d4b483 !important;
+  box-shadow: 0 0 0 2px rgba(212, 180, 131, 0.2) !important;
+  outline: none !important;
+}
+
+/* 3. 输入框悬停状态 */
+.el-input__inner:hover,
+.el-textarea__inner:hover,
+.el-select .el-input__inner:hover,
+.el-autocomplete .el-input__inner:hover {
+  border-color: #d4b483 !important;
+}
+
+/* 4. 占位符颜色 */
+.el-input__inner::placeholder,
+.el-textarea__inner::placeholder {
+  color: #a7874b !important;
+  opacity: 0.7 !important;
+}
+
+/* 5. 下拉选择框样式 */
+.el-select-dropdown {
+  background-color: #fffbf7 !important;
+  border: 1px solid #e8d4b8 !important;
+  box-shadow: 0 4px 12px rgba(155, 135, 110, 0.2) !important;
+}
+
+.el-select-dropdown__item {
+  color: #5b4636 !important;
+
+  background-color: #ffffff !important;
+}
+
+.el-select-dropdown__item:hover,
+.el-select-dropdown__item.hover {
+  background-color: rgba(241, 237, 231, 0.3) !important;
+  color: #3c2c1e !important;
+}
+
+.el-select-dropdown__item.selected {
+  background-color: rgba(225, 218, 203, 0.3) !important;
+  color: #3c2c1e !important;
+}
+
+/* 6. 下拉菜单样式 */
+.el-popper[x-placement^="bottom"] .popper__arrow::after {
+  border-bottom-color: #fff8f0 !important;
+}
+
+/* 7. 对话框中的表单样式 */
+.el-dialog .el-input__inner,
+.el-dialog .el-textarea__inner,
+.el-dialog .el-select .el-input__inner {
+  background-color: #ffffff !important;
+  border: 1px solid #e8d4b8 !important;
+  color: #5b4636 !important;
+}
+
+.el-dialog .el-input.is-focus .el-input__inner,
+.el-dialog .el-textarea.is-focus .el-textarea__inner,
+.el-dialog .el-select.is-focus .el-input__inner {
+  border-color: #d4b483 !important;
+  box-shadow: 0 0 0 2px rgba(212, 180, 131, 0.2) !important;
+}
+
+/* 8. 表单标签样式 */
+.el-form-item__label {
+  color: #5b4636 !important;
+  font-family: "STKaiti", "KaiTi", serif !important;
+  font-weight: bold !important;
+}

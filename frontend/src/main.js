@@ -4,11 +4,19 @@ import router from './router'
 import ElementUI from 'element-ui'
 import 'element-ui/lib/theme-chalk/index.css'
 import './assets/style.css'
+import { initBookData } from '@/mock/book'
 
+initBookData();
 Vue.use(ElementUI)
 Vue.config.productionTip = false
 Vue.prototype.$message = ElementUI.Message
 Vue.prototype.$confirm = ElementUI.MessageBox.confirm
+
+
+
+// 创建全局事件总线
+const eventBus = new Vue()
+window.eventBus = eventBus
 
 new Vue({
   router,

@@ -1,15 +1,18 @@
-// 借阅API - 模拟数据版本
+// 借阅API - 带环境切换版本
+import { API_CONFIG } from '@/config/api.config'
 import { mockBorrowRecords, mockBorrowStats } from '@/mock/borrow-data'
 import { mockUsers } from '@/mock/user'
 import { mockBooks } from '@/mock/book'
+import request from '@/utils/request'  // 真实的axios实例
 
 // 模拟延迟
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms))
 
-export const borrowApi = {
+// 模拟数据API
+const mockApi = {
   // 获取借阅记录列表（分页）
   async getBorrowRecords(params = {}) {
-    await delay(500)
+    await delay(API_CONFIG.MOCK_DELAY || 500)
     
     const { 
       page = 1, 
@@ -26,21 +29,34 @@ export const borrowApi = {
     
     // 首先，将所有记录转换为可搜索的格式
     const searchableRecords = mockBorrowRecords.map(record => {
-      // 查找用户信息
-      const user = mockUsers.find(u => u.id === record.userId)
-      // 查找图书信息
-      const book = mockBooks.find(b => b.id === record.bookId)
-      
-      return {
-        ...record,
-        // 搜索用的字段
-        userRealName: user ? user.username : '',      // 用户的真实用户名
-        userEmail: user ? user.email : '',            // 用户邮箱
-        bookRealTitle: book ? book.title : '',        // 图书的真实书名
-        bookAuthor: book ? book.author : '',          // 图书作者
-        bookIsbn: book ? book.isbn : ''               // 图书ISBN
+    // 查找用户信息
+    const user = mockUsers.find(u => u.id === record.userId)
+    // 查找图书信息
+    const book = mockBooks.find(b => b.id === record.bookId)
+    
+    // 动态计算状态：如果状态是 BORROWED 但已超过应还日期，则视为 OVERDUE
+    let currentStatus = record.status
+    const now = new Date()
+    
+    if (currentStatus === 'BORROWED') {
+      const dueDate = new Date(record.dueDate)
+      if (dueDate < now) {
+        currentStatus = 'OVERDUE'
       }
-    })
+    }
+    
+    return {
+      ...record,
+      // 使用动态计算的状态
+      status: currentStatus,
+      // 搜索用的字段
+      userRealName: user ? user.username : '',      // 用户的真实用户名
+      userEmail: user ? user.email : '',            // 用户邮箱
+      bookRealTitle: book ? book.title : '',        // 图书的真实书名
+      bookAuthor: book ? book.author : '',          // 图书作者
+      bookIsbn: book ? book.isbn : ''               // 图书ISBN
+    }
+  })
     
     // 开始过滤
     let filteredRecords = searchableRecords
@@ -117,9 +133,9 @@ export const borrowApi = {
     }
   },
   
-  // 保持其他方法不变
+  // 借阅图书
   async borrowBook(data) {
-    await delay(500)
+    await delay(API_CONFIG.MOCK_DELAY || 500)
     
     const { userId, bookId } = data
     
@@ -132,7 +148,9 @@ export const borrowApi = {
     }
     
     // 检查用户是否存在
-    const user = mockUsers.find(u => u.id === Number(userId))
+    const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
+    const user = [...mockUsers, ...registeredUsers].find(u => Number(u.id) === Number(userId))
+    
     if (!user) {
       return {
         code: 404,
@@ -142,7 +160,10 @@ export const borrowApi = {
     }
     
     // 检查图书是否存在
-    const book = mockBooks.find(b => b.id === Number(bookId))
+    const storedBooks = JSON.parse(localStorage.getItem('books') || 'null')
+    const books = storedBooks || mockBooks
+    const book = books.find(b => Number(b.id) === Number(bookId))
+    
     if (!book) {
       return {
         code: 404,
@@ -150,7 +171,7 @@ export const borrowApi = {
         data: null
       }
     }
-    
+
     // 检查用户是否达到最大借阅数
     if (user.borrowedCount >= user.maxBorrowCount) {
       return {
@@ -191,6 +212,38 @@ export const borrowApi = {
     
     // 更新图书库存
     book.availableCopies--
+
+    // 保存更新后的用户数据
+    if (registeredUsers.some(u => Number(u.id) === Number(userId))) {
+      // 更新 registeredUsers 中的用户
+      const userIndex = registeredUsers.findIndex(u => Number(u.id) === Number(userId))
+      if (userIndex !== -1) {
+        registeredUsers[userIndex] = { ...registeredUsers[userIndex], borrowedCount: user.borrowedCount }
+        localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers))
+      }
+    } else {
+      // 更新 mockUsers 中的用户
+      const mockUserIndex = mockUsers.findIndex(u => Number(u.id) === Number(userId))
+      if (mockUserIndex !== -1) {
+        mockUsers[mockUserIndex] = { ...mockUsers[mockUserIndex], borrowedCount: user.borrowedCount }
+      }
+    }
+
+    // 保存更新后的图书数据
+    if (storedBooks) {
+      // 更新 localStorage 中的图书
+      const bookIndex = storedBooks.findIndex(b => Number(b.id) === Number(bookId))
+      if (bookIndex !== -1) {
+        storedBooks[bookIndex] = { ...storedBooks[bookIndex], availableCopies: book.availableCopies }
+        localStorage.setItem('books', JSON.stringify(storedBooks))
+      }
+    } else {
+      // 更新 mockBooks 中的图书
+      const mockBookIndex = mockBooks.findIndex(b => Number(b.id) === Number(bookId))
+      if (mockBookIndex !== -1) {
+        mockBooks[mockBookIndex] = { ...mockBooks[mockBookIndex], availableCopies: book.availableCopies }
+      }
+    }
     
     // 添加借阅记录
     mockBorrowRecords.unshift(newRecord)
@@ -211,8 +264,9 @@ export const borrowApi = {
     }
   },
   
+  // 归还图书
   async returnBook(recordId) {
-    await delay(500)
+    await delay(API_CONFIG.MOCK_DELAY || 500)
     
     const record = mockBorrowRecords.find(r => r.id === Number(recordId))
     
@@ -237,16 +291,68 @@ export const borrowApi = {
     record.status = 'RETURNED'
     record.updatedAt = new Date().toISOString()
     
-    // 更新用户借阅数量
-    const user = mockUsers.find(u => u.id === record.userId)
-    if (user) {
-      user.borrowedCount--
+    // **修复开始：更新用户借阅数量**
+    const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
+    
+    // 1. 首先尝试从 registeredUsers 中找用户
+    let user = registeredUsers.find(u => Number(u.id) === Number(record.userId))
+    
+    // 2. 如果没找到，再从 mockUsers 中找
+    if (!user) {
+      user = mockUsers.find(u => u.id === record.userId)
     }
     
-    // 更新图书库存
-    const book = mockBooks.find(b => b.id === record.bookId)
+    if (user) {
+      user.borrowedCount = Math.max(0, user.borrowedCount - 1)
+      
+      // 保存用户数据回存储
+      if (registeredUsers.some(u => Number(u.id) === Number(record.userId))) {
+        // 更新 registeredUsers 中的用户
+        const userIndex = registeredUsers.findIndex(u => Number(u.id) === Number(record.userId))
+        if (userIndex !== -1) {
+          registeredUsers[userIndex] = { ...registeredUsers[userIndex], borrowedCount: user.borrowedCount }
+          localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers))
+        }
+      } else {
+        // 更新 mockUsers 中的用户
+        const mockUserIndex = mockUsers.findIndex(u => u.id === record.userId)
+        if (mockUserIndex !== -1) {
+          mockUsers[mockUserIndex] = { ...mockUsers[mockUserIndex], borrowedCount: user.borrowedCount }
+        }
+      }
+    }
+    
+    // **修复：更新图书库存 - 与 borrowBook 方法保持一致**
+    const storedBooks = JSON.parse(localStorage.getItem('books') || 'null')
+    const books = storedBooks || mockBooks
+    
+    const book = books.find(b => Number(b.id) === Number(record.bookId))
+    
     if (book) {
+      // 增加库存
       book.availableCopies++
+      
+      // **关键修复：保存更新后的图书数据**
+      if (storedBooks) {
+        // 更新 localStorage 中的图书
+        const bookIndex = storedBooks.findIndex(b => Number(b.id) === Number(record.bookId))
+        if (bookIndex !== -1) {
+          storedBooks[bookIndex] = { 
+            ...storedBooks[bookIndex], 
+            availableCopies: book.availableCopies 
+          }
+          localStorage.setItem('books', JSON.stringify(storedBooks))
+        }
+      } else {
+        // 更新 mockBooks 中的图书
+        const mockBookIndex = mockBooks.findIndex(b => Number(b.id) === Number(record.bookId))
+        if (mockBookIndex !== -1) {
+          mockBooks[mockBookIndex] = { 
+            ...mockBooks[mockBookIndex], 
+            availableCopies: book.availableCopies 
+          }
+        }
+      }
     }
     
     return {
@@ -265,8 +371,9 @@ export const borrowApi = {
     }
   },
   
+  // 续借图书
   async renewBook(recordId) {
-    await delay(500)
+    await delay(API_CONFIG.MOCK_DELAY || 500)
     
     const record = mockBorrowRecords.find(r => r.id === Number(recordId))
     
@@ -313,8 +420,9 @@ export const borrowApi = {
     }
   },
   
+  // 获取逾期记录
   async getOverdueRecords(params = {}) {
-    await delay(500)
+    await delay(API_CONFIG.MOCK_DELAY || 500)
     
     const { page = 1, size = 10 } = params
     const now = new Date()
@@ -355,8 +463,9 @@ export const borrowApi = {
     }
   },
   
+  // 获取借阅统计
   async getBorrowStats() {
-    await delay(300)
+    await delay(API_CONFIG.MOCK_DELAY || 300)
     
     return {
       code: 200,
@@ -365,8 +474,9 @@ export const borrowApi = {
     }
   },
   
+  // 获取借阅记录详情
   async getBorrowRecordDetail(id) {
-    await delay(300)
+    await delay(API_CONFIG.MOCK_DELAY || 300)
     
     const record = mockBorrowRecords.find(r => r.id === Number(id))
     
@@ -385,3 +495,44 @@ export const borrowApi = {
     }
   }
 }
+
+// 真实API
+const realApi = {
+  // 获取借阅记录列表（分页）
+  async getBorrowRecords(params) {
+    return request.get('/borrow/records', { params })
+  },
+  
+  // 借阅图书
+  async borrowBook(data) {
+    return request.post('/borrow/borrow', data)
+  },
+  
+  // 归还图书
+  async returnBook(recordId) {
+    return request.post(`/borrow/return/${recordId}`)
+  },
+  
+  // 续借图书
+  async renewBook(recordId) {
+    return request.post(`/borrow/renew/${recordId}`)
+  },
+  
+  // 获取逾期记录
+  async getOverdueRecords(params) {
+    return request.get('/borrow/overdue', { params })
+  },
+  
+  // 获取借阅统计
+  async getBorrowStats() {
+    return request.get('/borrow/stats')
+  },
+  
+  // 获取借阅记录详情
+  async getBorrowRecordDetail(id) {
+    return request.get(`/borrow/records/${id}`)
+  }
+}
+
+// 根据配置选择使用哪个API
+export const borrowApi = API_CONFIG.USE_MOCK ? mockApi : realApi

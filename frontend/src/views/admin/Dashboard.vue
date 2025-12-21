@@ -117,7 +117,7 @@
                   </el-card>
                 </el-col>
                 <el-col :span="8">
-                  <el-card shadow="hover" class="action-card" @click.native="showMessage">
+                  <el-card shadow="hover" class="action-card" @click.native="$router.push('/admin/borrow')">
                     <div class="action-content">
                       <i class="el-icon-circle-plus"></i>
                       <h4>借书登记</h4>
@@ -125,7 +125,7 @@
                   </el-card>
                 </el-col>
                 <el-col :span="8">
-                  <el-card shadow="hover" class="action-card" @click.native="showMessage">
+                  <el-card shadow="hover" class="action-card" @click.native="$router.push('/admin/users')">
                     <div class="action-content">
                       <i class="el-icon-user"></i>
                       <h4>添加用户</h4>
@@ -159,9 +159,6 @@ export default {
       localStorage.removeItem('user')
       this.$router.push('/admin/login')
     },
-    showMessage() {
-      this.$message.info('功能开发中...')
-    }
   }
 }
 </script>

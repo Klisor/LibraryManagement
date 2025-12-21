@@ -318,123 +318,9 @@
 </template>
 
 <script>
-// 直接在组件内定义分类数据，避免路径问题
-const BOOK_CATEGORIES = {
-  1: '文学',
-  2: '历史', 
-  3: '科学',
-  4: '技术',
-  5: '教育',
-  6: '艺术',
-  7: '商业',
-  8: '健康',
-  9: '旅行',
-  10: '其他'
-};
-
-const CATEGORY_OPTIONS = [
-  { value: 1, label: '文学' },
-  { value: 2, label: '历史' },
-  { value: 3, label: '科学' },
-  { value: 4, label: '技术' },
-  { value: 5, label: '教育' },
-  { value: 6, label: '艺术' },
-  { value: 7, label: '商业' },
-  { value: 8, label: '健康' },
-  { value: 9, label: '旅行' },
-  { value: 10, label: '其他' }
-];
-
-function getCategoryName(categoryCode) {
-  return BOOK_CATEGORIES[categoryCode] || '未知分类';
-}
-
-function getCategoryColor(categoryCode) {
-  const colors = [
-    '#ff6b6b', '#48dbfb', '#1dd1a1', '#feca57', '#ff9ff3',
-    '#f368e0', '#ff9f43', '#54a0ff', '#5f27cd', '#c8d6e5'
-  ];
-  return colors[(categoryCode - 1) % colors.length];
-}
-
-// 模拟图书数据
-let mockBooks = [
-  {
-    id: 1,
-    isbn: '978-7-5354-1234-5',
-    title: '红楼梦',
-    author: '曹雪芹',
-    publisher: '人民文学出版社',
-    publishYear: 2020,
-    category: 1,
-    totalCopies: 5,
-    availableCopies: 3,
-    location: 'A区3排2架',
-    description: '中国古典文学名著',
-    createdAt: '2024-01-01T00:00:00.000Z',
-    updatedAt: '2024-01-01T00:00:00.000Z'
-  },
-  {
-    id: 2,
-    isbn: '978-7-02-001501-6',
-    title: '三国演义',
-    author: '罗贯中',
-    publisher: '人民文学出版社',
-    publishYear: 2019,
-    category: 1,
-    totalCopies: 3,
-    availableCopies: 1,
-    location: 'A区2排1架',
-    description: '中国古代历史小说',
-    createdAt: '2024-01-02T00:00:00.000Z',
-    updatedAt: '2024-01-02T00:00:00.000Z'
-  },
-  {
-    id: 3,
-    isbn: '978-7-02-015433-3',
-    title: '西游记',
-    author: '吴承恩',
-    publisher: '人民文学出版社',
-    publishYear: 2021,
-    category: 1,
-    totalCopies: 4,
-    availableCopies: 4,
-    location: 'A区2排3架',
-    description: '中国古典神魔小说',
-    createdAt: '2024-01-03T00:00:00.000Z',
-    updatedAt: '2024-01-03T00:00:00.000Z'
-  },
-  {
-    id: 4,
-    isbn: '978-7-5327-8533-4',
-    title: 'JavaScript高级程序设计',
-    author: 'Nicholas C. Zakas',
-    publisher: '人民邮电出版社',
-    publishYear: 2019,
-    category: 4,
-    totalCopies: 10,
-    availableCopies: 6,
-    location: 'B区1排1架',
-    description: 'JavaScript经典教程',
-    createdAt: '2024-01-04T00:00:00.000Z',
-    updatedAt: '2024-01-04T00:00:00.000Z'
-  },
-  {
-    id: 5,
-    isbn: '978-7-115-51531-8',
-    title: 'Vue.js设计与实现',
-    author: '霍春阳',
-    publisher: '人民邮电出版社',
-    publishYear: 2022,
-    category: 4,
-    totalCopies: 8,
-    availableCopies: 5,
-    location: 'B区1排2架',
-    description: 'Vue.js技术原理详解',
-    createdAt: '2024-01-05T00:00:00.000Z',
-    updatedAt: '2024-01-05T00:00:00.000Z'
-  }
-];
+// 导入 bookApi
+import { bookApi } from '@/api/book'
+import { BOOK_CATEGORIES, CATEGORY_OPTIONS, getCategoryName, getCategoryColor } from '@/constants/bookCategories'
 
 export default {
   name: 'BookManagement',
@@ -456,13 +342,16 @@ export default {
       sortOrder: '',
       
       // 表格数据
-      bookList: [...mockBooks],
+      bookList: [], // 初始化为空数组，通过API加载
       loading: false,
+      allBooks: [], // 所有图书数据
+      bookList: [], // 当前页的图书数据
       
       // 分页
       pagination: {
         page: 1,
-        size: 10
+        size: 10,
+        total: 0 // 添加total字段
       },
       
       // 对话框
@@ -517,16 +406,11 @@ export default {
     }
   },
   computed: {
-    // 是否正在编辑
-    isEditing() {
-      return !!this.form.id
-    },
-    
-    // 过滤后的图书数据
+  // 过滤后的图书数据（根据搜索条件）
     filteredBooks() {
-      let result = [...this.bookList]
+      let result = [...this.allBooks]
       
-      // 搜索过滤
+      // 应用搜索过滤
       if (this.searchForm.title) {
         result = result.filter(book => 
           book.title.toLowerCase().includes(this.searchForm.title.toLowerCase())
@@ -547,7 +431,7 @@ export default {
         result = result.filter(book => book.availableCopies > 0)
       }
       
-      // 排序
+      // 应用排序
       if (this.sortField && this.sortOrder) {
         result.sort((a, b) => {
           let aValue = a[this.sortField]
@@ -570,7 +454,7 @@ export default {
       return result
     },
     
-    // 分页后的数据
+    // 当前页的数据
     paginatedBooks() {
       const start = (this.pagination.page - 1) * this.pagination.size
       const end = start + this.pagination.size
@@ -583,11 +467,67 @@ export default {
       this.$router.push('/admin/login')
       return
     }
+    
+    // 加载图书列表
+    this.loadBooks()
   },
   methods: {
     // 工具函数
     getCategoryName,
     getCategoryColor,
+    
+    // 加载图书列表
+    async loadBooks() {
+      this.loading = true
+      try {
+        // 移除分页参数，加载所有数据
+        const params = {}
+        
+        // 添加搜索条件
+        if (this.searchForm.title) {
+          params.title = this.searchForm.title
+        }
+        
+        if (this.searchForm.author) {
+          params.author = this.searchForm.author
+        }
+        
+        if (this.searchForm.category) {
+          params.category = this.searchForm.category
+        }
+        
+        if (this.searchForm.availableOnly) {
+          params.availableOnly = this.searchForm.availableOnly
+        }
+        
+        // 设置一个较大的size，获取所有符合条件的图书
+        params.size = 1000  // 假设最多1000本
+        
+        const res = await bookApi.getBooks(params)
+        
+        if (res.code === 200) {
+          // 保存所有过滤后的数据
+          this.allBooks = res.data.list
+          this.pagination.total = res.data.total
+          
+          // 重置当前页到第一页
+          if (this.pagination.page > Math.ceil(res.data.total / this.pagination.size)) {
+            this.pagination.page = 1
+          }
+        } else {
+          this.$message.error(res.message)
+          this.allBooks = []
+          this.pagination.total = 0
+        }
+      } catch (error) {
+        console.error('加载图书列表失败:', error)
+        this.$message.error('加载失败，请稍后重试')
+        this.allBooks = []
+        this.pagination.total = 0
+      } finally {
+        this.loading = false
+      }
+    },
     
     // 计算可用百分比
     getAvailablePercentage(book) {
@@ -616,6 +556,7 @@ export default {
     // 搜索
     handleSearch() {
       this.pagination.page = 1
+      this.loadBooks()
     },
     
     // 重置搜索
@@ -629,22 +570,26 @@ export default {
       this.sortField = ''
       this.sortOrder = ''
       this.pagination.page = 1
+      this.loadBooks()
     },
     
     // 分页处理
     handleSizeChange(size) {
       this.pagination.size = size
       this.pagination.page = 1
+      // 不需要重新加载数据，因为已经有所有数据了
     },
     
     handleCurrentChange(page) {
       this.pagination.page = page
+      // 不需要重新加载数据，因为已经有所有数据了
     },
     
     // 排序处理
     handleSortChange({ prop, order }) {
       this.sortField = prop
       this.sortOrder = order === 'ascending' ? 'asc' : order === 'descending' ? 'desc' : ''
+      // 不需要重新加载数据，排序在计算属性中处理
     },
     
     // 添加图书
@@ -674,130 +619,62 @@ export default {
     },
     
     // 删除图书
-    handleDeleteBook(book) {
+    async handleDeleteBook(book) {
       this.$confirm(`确定要删除《${book.title}》吗？`, '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
-        type: 'warning',
-        beforeClose: (action, instance, done) => {
-          if (action === 'confirm') {
-            instance.confirmButtonLoading = true
-            this.performDeleteBook(book.id).finally(() => {
-              instance.confirmButtonLoading = false
-              done()
-            })
+        type: 'warning'
+      }).then(async () => {
+        try {
+          const res = await bookApi.deleteBook(book.id)
+          
+          if (res.code === 200) {
+            this.$message.success('删除成功')
+            this.loadBooks() // 重新加载列表
           } else {
-            done()
+            this.$message.error(res.message || '删除失败')
           }
+        } catch (error) {
+          console.error('删除失败:', error)
+          this.$message.error('删除失败，请稍后重试')
         }
-      }).catch(() => {})
-    },
-    
-    // 执行删除
-    async performDeleteBook(bookId) {
-      try {
-        // 模拟API调用延迟
-        await new Promise(resolve => setTimeout(resolve, 300))
-        
-        // 查找图书
-        const index = this.bookList.findIndex(book => book.id === bookId)
-        
-        if (index === -1) {
-          this.$message.error('图书不存在')
-          return
-        }
-        
-        const book = this.bookList[index]
-        
-        // 检查图书是否已被借阅
-        if (book.availableCopies < book.totalCopies) {
-          this.$message.error('图书已被借阅，无法删除')
-          return
-        }
-        
-        // 删除图书
-        this.bookList.splice(index, 1)
-        this.$message.success('删除成功')
-        
-        // 如果当前页没有数据了，回到上一页
-        if (this.paginatedBooks.length === 0 && this.pagination.page > 1) {
-          this.pagination.page -= 1
-        }
-        
-      } catch (error) {
-        console.error('删除失败:', error)
-        this.$message.error('删除失败，请稍后重试')
-      }
+      }).catch(() => {
+        // 用户取消删除
+      })
     },
     
     // 提交表单（添加/编辑）
-    submitForm() {
+    async submitForm() {
       this.$refs.bookForm.validate(async (valid) => {
         if (!valid) return
         
         this.submitting = true
         
         try {
-          // 模拟API调用延迟
-          await new Promise(resolve => setTimeout(resolve, 500))
-          
           if (this.form.id) {
-            // 编辑图书 - 查找并更新
-            const index = this.bookList.findIndex(book => book.id === this.form.id)
+            // 编辑图书
+            const { id, ...bookData } = this.form
+            const res = await bookApi.updateBook(id, bookData)
             
-            if (index === -1) {
-              this.$message.error('图书不存在')
-              return
+            if (res.code === 200) {
+              this.$message.success('更新成功')
+              this.dialogVisible = false
+              this.loadBooks() // 重新加载列表
+            } else {
+              this.$message.error(res.message)
             }
-            
-            // 检查可用副本数不能大于总副本数
-            if (this.form.availableCopies > this.form.totalCopies) {
-              this.$message.error('可用副本数不能大于总副本数')
-              return
-            }
-            
-            // 更新图书
-            this.bookList[index] = {
-              ...this.form,
-              updatedAt: new Date().toISOString()
-            }
-            
-            this.$message.success('更新成功')
-            
-            // 关键修复：编辑成功后强制刷新显示
-            // 通过创建一个新数组触发响应式更新
-            this.bookList = [...this.bookList]
           } else {
-            // 添加图书 - 检查ISBN是否已存在
-            const existingBook = this.bookList.find(book => book.isbn === this.form.isbn)
+            // 添加图书
+            const res = await bookApi.addBook(this.form)
             
-            if (existingBook) {
-              this.$message.error('ISBN已存在')
-              return
+            if (res.code === 200) {
+              this.$message.success('添加成功')
+              this.dialogVisible = false
+              this.loadBooks() // 重新加载列表
+            } else {
+              this.$message.error(res.message)
             }
-            
-            // 检查可用副本数不能大于总副本数
-            if (this.form.availableCopies > this.form.totalCopies) {
-              this.form.availableCopies = this.form.totalCopies
-            }
-            
-            // 添加新图书
-            const newBook = {
-              ...this.form,
-              id: this.bookList.length > 0 ? Math.max(...this.bookList.map(b => b.id)) + 1 : 1,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString()
-            }
-            
-            this.bookList.unshift(newBook)
-            this.$message.success('添加成功')
-            
-            // 添加后重置搜索条件
-            this.handleReset()
           }
-          
-          this.dialogVisible = false
-          
         } catch (error) {
           console.error('操作失败:', error)
           this.$message.error('操作失败，请稍后重试')
