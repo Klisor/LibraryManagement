@@ -137,9 +137,9 @@ public class BorrowServiceImpl implements BorrowService {
                 .orElseThrow(() -> new BusinessException(404, "借阅记录不存在"));
 
         // 检查权限（只能是借阅者本人）
-        if (!borrowRecord.getUserId().equals(userId)) {
-            throw new BusinessException(403, "无权操作此借阅记录");
-        }
+//        if (!borrowRecord.getUserId().equals(userId)) {
+//            throw new BusinessException(403, "无权操作此借阅记录");
+//        }
 
         // 检查状态
         if (borrowRecord.getStatus() != BorrowRecord.BorrowStatus.BORROWED) {
@@ -178,7 +178,9 @@ public class BorrowServiceImpl implements BorrowService {
     @Override
     public List<BorrowDTO> getBorrowRecords(Long userId, BorrowRecord.BorrowStatus status) {
         List<BorrowRecord> records;
-
+        if (userId != null && userId == 0L)       userId = null;
+        if (status != null && "".equals(status.name())) status = null;
+        System.out.println("【借阅记录】userId=" + userId + ", status=" + status);
         if (userId != null && status != null) {
             records = borrowRecordRepository.findByUserIdAndStatus(userId, status);
         } else if (userId != null) {
@@ -224,8 +226,8 @@ public class BorrowServiceImpl implements BorrowService {
                 .map(record -> {
                     BorrowDTO dto = BorrowDTO.fromEntity(record);
                     // 计算逾期天数
-                    // long overdueDays = ChronoUnit.DAYS.between(record.getDueDate(), LocalDateTime.now());
-                    // dto.setOverdueDays(overdueDays);
+//                     long overdueDays = ChronoUnit.DAYS.between(record.getDueDate(), LocalDateTime.now());
+//                     dto.setOverdueDays(overdueDays);
                     return dto;
                 })
                 .collect(Collectors.toList());

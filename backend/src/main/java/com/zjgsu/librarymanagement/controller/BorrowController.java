@@ -59,7 +59,6 @@ public class BorrowController {
                                             HttpServletRequest request) {
         if (!jwtUtil.validateToken(tk)) return ApiResponse.error("无效token");
 
-        // 业务层会再校验“只能续借自己的书”
         Long userId=jwtUtil.getUserIdFromToken(tk);
         BorrowDTO dto = borrowService.renewBook(userId,recordId);
         return ApiResponse.success("续借成功", dto);
@@ -72,13 +71,11 @@ public class BorrowController {
             @RequestParam(required = false) BorrowRecord.BorrowStatus status,
             @RequestHeader("Authorization") String tk,
             HttpServletRequest request) {
-
         if (!jwtUtil.validateToken(tk)) return ApiResponse.error("无效token");
 
         List<BorrowDTO> records;
-        if (userId != null) {
+        if (tools.isAdmin(tk))  {
             // 只有管理员能查别人记录
-            if (!tools.isAdmin(tk)) return ApiResponse.error("无权限");
             records = borrowService.getBorrowRecords(userId, status);
         } else {
             // 查自己
@@ -95,7 +92,16 @@ public class BorrowController {
                                                   HttpServletRequest request) {
         if (!jwtUtil.validateToken(tk)) return ApiResponse.error("无效token");
         Long userId=jwtUtil.getUserIdFromToken(tk);
-        BorrowDTO dto = borrowService.getBorrowRecordById(id);
+        jwtUtil.getRoleFromToken(tk);
+        BorrowDTO dto;
+        if(tools.isAdmin(tk)){
+            dto = borrowService.getBorrowRecordById(id);
+        }else {
+        dto = borrowService.getBorrowRecordById(id);
+            if(userId!=dto.getUserId()){
+                return ApiResponse.error("不可查阅他人记录");
+            }
+        }
         return ApiResponse.success(dto);
     }
 

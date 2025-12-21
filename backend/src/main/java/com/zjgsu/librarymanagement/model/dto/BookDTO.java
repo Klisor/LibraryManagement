@@ -13,16 +13,12 @@ import java.time.LocalDateTime;
 
 @Data
 public class BookDTO {
-
     private Long id;
 
-    @NotBlank(message = "ISBN不能为空")
     private String isbn;
 
-    @NotBlank(message = "书名不能为空")
     private String title;
 
-    @NotBlank(message = "作者不能为空")
     private String author;
 
     private String publisher;

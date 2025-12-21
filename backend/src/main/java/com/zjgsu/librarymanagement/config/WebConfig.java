@@ -16,6 +16,8 @@ public class WebConfig implements WebMvcConfigurer {
                 // ======== 白名单 ========
                 .excludePathPatterns(
                         "/api/users/register",
+                        "/api/users",
+                        "/users",
                         "/api/auth/login",
                         "/users/register",
                         "/auth/login",            // 登录

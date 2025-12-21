@@ -44,7 +44,11 @@ public class NoteController {
                                         @RequestHeader("Authorization") String token) {
         if(JwtUtil.validateToken(token)) {
             NoteDTO note = noteService.getNoteById(id);
-            return ApiResponse.success(note);
+            if(note.getUserId()==jwtUtil.getUserIdFromToken(token))
+                return ApiResponse.success(note);
+            else {
+                return ApiResponse.error("无权限");
+            }
         }
         else {
             return ApiResponse.error("无效token");
@@ -77,8 +81,14 @@ public class NoteController {
             @Validated @RequestBody NoteDTO noteDTO,
             @RequestHeader("Authorization") String token) {
         if(JwtUtil.validateToken(token)) {
-            NoteDTO updatedNote = noteService.updateNote(id, noteDTO);
-            return ApiResponse.success("笔记更新成功", updatedNote);
+            NoteDTO note = noteService.getNoteById(id);
+            if(note.getUserId()==jwtUtil.getUserIdFromToken(token)) {
+                NoteDTO updatedNote = noteService.updateNote(id, noteDTO);
+                return ApiResponse.success("笔记更新成功", updatedNote);
+            }
+            else {
+                return ApiResponse.error("无权限");
+            }
         }
         else {
             return ApiResponse.error("无效token");
@@ -92,8 +102,15 @@ public class NoteController {
     public ApiResponse<Void> deleteNote(@PathVariable Long id,
                                         @RequestHeader("Authorization") String token) {
         if(JwtUtil.validateToken(token)) {
-            noteService.deleteNote(id);
-            return ApiResponse.success("笔记删除成功", null);
+            NoteDTO note = noteService.getNoteById(id);
+            if(note.getUserId()==jwtUtil.getUserIdFromToken(token)) {
+                noteService.deleteNote(id);
+                return ApiResponse.success("笔记删除成功", null);
+            }
+            else {
+                return ApiResponse.error("无权限");
+            }
+
         }
         else {
             return ApiResponse.error("无效token");
