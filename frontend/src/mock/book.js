@@ -166,9 +166,7 @@ export function initBookData() {
   if (!storedBooks || storedBooks.length === 0) {
     // 如果没有存储的数据，使用 mockBooks 并保存
     localStorage.setItem('books', JSON.stringify(mockBooks))
-    console.log('📚 初始化图书数据到 localStorage，数量:', mockBooks.length)
   } else {
-    console.log('📚 已存在图书数据，数量:', storedBooks.length)
     
     // **修复：确保ID连续且唯一**
     const bookMap = new Map()
@@ -196,7 +194,6 @@ export function initBookData() {
     // 更新 localStorage
     localStorage.setItem('books', JSON.stringify(mergedBooks))
     
-    console.log('🔄 合并并同步图书数据，共', mergedBooks.length, '本')
   }
 }
 

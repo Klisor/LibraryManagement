@@ -197,7 +197,6 @@ export function initBorrowData() {
     mockBorrowRecords.length = 0
     mergedRecords.forEach(record => mockBorrowRecords.push(record))
     
-    console.log('合并并同步借阅记录数据，共', mergedRecords.length, '条')
   }
 }
 

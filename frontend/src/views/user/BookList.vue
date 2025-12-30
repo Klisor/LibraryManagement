@@ -38,59 +38,32 @@
       <!-- 搜索和筛选区域 -->
       <div class="search-filter-area ancient-section">
         <div class="search-box">
-          <el-input
-            v-model="searchKeyword"
-            placeholder="搜索图书名称、作者、ISBN"
-            class="search-input"
-            @keyup.enter.native="handleSearch"
-          >
-            <el-select
-              slot="prepend"
-              v-model="searchField"
-              placeholder="搜索范围"
-              style="width: 120px;"
-            >
+          <el-input v-model="searchKeyword" placeholder="搜索图书名称、作者、ISBN" class="search-input"
+            @keyup.enter.native="handleSearch">
+            <el-select slot="prepend" v-model="searchField" placeholder="搜索范围" style="width: 120px;">
               <el-option label="全部" value="all"></el-option>
               <el-option label="书名" value="title"></el-option>
               <el-option label="作者" value="author"></el-option>
               <el-option label="ISBN" value="isbn"></el-option>
             </el-select>
-            <el-button
-              slot="append"
-              icon="el-icon-search"
-              @click="handleSearch"
-              class="ancient-btn"
-            ></el-button>
+            <el-button slot="append" icon="el-icon-search" @click="handleSearch" class="ancient-btn"></el-button>
           </el-input>
         </div>
 
         <div class="filter-box">
-          <el-select
-            v-model="categoryFilter"
-            placeholder="选择分类"
-            clearable
-            @change="handleCategoryChange"
-            style="width: 150px; margin-right: 10px;"
-          >
-            <el-option
-              v-for="item in categoryOptions"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            ></el-option>
+          <el-select v-model="categoryFilter" placeholder="选择分类" clearable @change="handleCategoryChange"
+            style="width: 150px; margin-right: 10px;">
+            <el-option v-for="item in categoryOptions" :key="item.value" :label="item.label"
+              :value="item.value"></el-option>
           </el-select>
-          
+
           <!-- 添加分类显示标签 -->
           <div v-if="categoryFilter" style="display: inline-block; margin-left: 10px;">
             当前分类：<el-tag size="small" class="ancient-tag">{{ getCategoryName(categoryFilter) }}</el-tag>
           </div>
 
-          <el-checkbox
-            v-model="availableOnly"
-            @change="handleAvailableChange"
-            style="margin-right: 10px;"
-            class="ancient-checkbox"
-          >
+          <el-checkbox v-model="availableOnly" @change="handleAvailableChange" style="margin-right: 10px;"
+            class="ancient-checkbox">
             仅显示有库存
           </el-checkbox>
 
@@ -109,12 +82,7 @@
         </div>
 
         <div v-else class="book-grid">
-          <div
-            v-for="book in books"
-            :key="book.id"
-            class="book-card ancient-card"
-            @click="viewBookDetail(book)"
-          >
+          <div v-for="book in books" :key="book.id" class="book-card ancient-card" @click="viewBookDetail(book)">
             <div class="book-cover ancient-cover">
               <div class="cover-placeholder">
                 {{ book.title.substring(0, 2) }}
@@ -123,55 +91,48 @@
                 已借光
               </div>
             </div>
-            
+
             <div class="book-info">
               <h3 class="book-title" :title="book.title">
                 {{ book.title }}
               </h3>
-              
+
               <div class="book-author">
                 <i class="el-icon-user"></i>
                 {{ book.author }}
               </div>
-              
+
               <div class="book-category">
                 <el-tag size="mini" class="ancient-tag category-tag">
                   {{ getCategoryName(book.category) }}
                 </el-tag>
               </div>
-              
+
               <div class="book-meta">
                 <div class="meta-item">
                   <i class="el-icon-collection"></i>
                   <span>库存：{{ book.availableCopies }}/{{ book.totalCopies }}</span>
                 </div>
-                
+
                 <div v-if="book.publisher" class="meta-item">
                   <i class="el-icon-office-building"></i>
                   <span>{{ book.publisher }}</span>
                 </div>
-                
+
                 <div v-if="book.publishYear" class="meta-item">
                   <i class="el-icon-date"></i>
                   <span>{{ book.publishYear }}年</span>
                 </div>
               </div>
-              
+
               <div class="book-actions">
-                <el-button
-                  size="small"
-                  class="ancient-btn detail-btn"
-                  @click.stop="viewBookDetail(book)"
-                >
+                <el-button size="small" class="ancient-btn detail-btn" @click.stop="viewBookDetail(book)">
                   查看详情
                 </el-button>
-                
-                <el-button
-                  size="small"
+
+                <el-button size="small"
                   :class="book.availableCopies > 0 ? 'ancient-btn borrow-btn' : 'ancient-btn disabled-btn'"
-                  :disabled="book.availableCopies <= 0"
-                  @click.stop="showBorrowDialog(book)"
-                >
+                  :disabled="book.availableCopies <= 0" @click.stop="showBorrowDialog(book)">
                   {{ book.availableCopies > 0 ? '立即借阅' : '已借光' }}
                 </el-button>
               </div>
@@ -181,43 +142,23 @@
 
         <!-- 分页 -->
         <div v-if="total > 0" class="pagination">
-          <el-pagination
-            @size-change="handleSizeChange"
-            @current-change="handlePageChange"
-            :current-page="currentPage"
-            :page-sizes="[12, 24, 48, 96]"
-            :page-size="pageSize"
-            layout="total, sizes, prev, pager, next, jumper"
-            :total="total"
-            :background="true"
-            class="ancient-pagination"
-          >
+          <el-pagination @size-change="handleSizeChange" @current-change="handlePageChange" :current-page="currentPage"
+            :page-sizes="[12, 24, 48, 96]" :page-size="pageSize" layout="total, sizes, prev, pager, next, jumper"
+            :total="total" :background="true" class="ancient-pagination">
           </el-pagination>
         </div>
       </div>
     </div>
 
     <!-- 图书详情对话框 -->
-    <el-dialog
-      :visible.sync="detailDialogVisible"
-      width="850px"
-      @close="selectedBook = null"
-      custom-class="ancient-dialog no-header-dialog"
-    >
-      <BookDetail
-        v-if="selectedBook"
-        :book-id="selectedBook.id"
-        @close="detailDialogVisible = false"
-        @borrow="handleBorrowBook"
-      />
+    <el-dialog :visible.sync="detailDialogVisible" width="850px" @close="selectedBook = null"
+      custom-class="ancient-dialog no-header-dialog">
+      <BookDetail v-if="selectedBook" :book-id="selectedBook.id" @close="detailDialogVisible = false"
+        @borrow="handleBorrowBook" />
     </el-dialog>
 
     <!-- 借阅对话框 -->
-    <el-dialog
-      :visible.sync="borrowDialogVisible"
-      width="400px"
-      custom-class="ancient-dialog no-header-dialog"
-    >
+    <el-dialog :visible.sync="borrowDialogVisible" width="400px" custom-class="ancient-dialog no-header-dialog">
       <div v-if="bookToBorrow" class="borrow-tip">
         <p>您将要借阅《{{ bookToBorrow.title }}》</p>
         <p>请前往管理员处办理借阅手续</p>
@@ -246,26 +187,26 @@ export default {
       // 用户信息
       user: {},
       activeNav: 'books',
-      
+
       // 搜索和筛选
       searchKeyword: '',
       searchField: 'all',
       categoryFilter: '', // 确保初始值为空字符串
       availableOnly: false,
-      
+
       // 图书数据
       books: [],
       loading: false,
       currentPage: 1,
       pageSize: 12,
       total: 0,
-      
+
       // 对话框
       detailDialogVisible: false,
       selectedBook: null,
       borrowDialogVisible: false,
       bookToBorrow: null,
-      
+
       // 分类选项（使用常量）
       categoryOptions: CATEGORY_OPTIONS
     }
@@ -342,7 +283,7 @@ export default {
           break
       }
     },
-    
+
     // 用户命令处理
     handleCommand(command) {
       if (command === 'logout') {
@@ -351,11 +292,11 @@ export default {
         this.$router.push('/user/personal')
       }
     },
-    
+
     // 处理路由参数
     handleRouteQuery(query) {
       let needLoadBooks = false
-      
+
       // 处理搜索关键词
       if (query.q && (query.q !== this.searchKeyword || query.field !== this.searchField)) {
         this.searchKeyword = query.q
@@ -363,7 +304,7 @@ export default {
         this.currentPage = 1
         needLoadBooks = true
       }
-      
+
       // 处理分类筛选 - 确保转换为数字
       if (query.category) {
         const categoryId = Number(query.category)
@@ -378,12 +319,12 @@ export default {
         this.currentPage = 1
         needLoadBooks = true
       }
-      
+
       // 处理图书详情查看
       if (query.bookId) {
         this.viewBookById(query.bookId)
       }
-      
+
       // 需要加载图书列表的情况：
       // 1. 有搜索或分类变化 (needLoadBooks = true)
       // 2. 首次进入页面，没有任何查询参数
@@ -395,11 +336,14 @@ export default {
         this.loadBooks()
       }
     },
-    
+
     // 通过ID查看图书详情
     async viewBookById(bookId) {
       try {
-        const res = await bookApi.getBookDetail(bookId)
+        var res = await bookApi.getBookDetail(bookId)
+
+        res = res.data
+        console.log(res)
         if (res.code === 200) {
           this.selectedBook = res.data
           this.detailDialogVisible = true
@@ -411,77 +355,134 @@ export default {
         this.$message.error('加载失败，请稍后重试')
       }
     },
-    
+
     // 加载图书列表
+    // 加载图书列表 - 修复版本
     async loadBooks() {
       this.loading = true
       try {
         const params = {
           page: this.currentPage,
-          size: this.pageSize
+          size: 100,  // 获取较多数据在前端处理
+          orderBy: 'id',
+          order: 'desc'
         }
-        
-        // 添加搜索条件
-        if (this.searchKeyword.trim()) {
-          if (this.searchField === 'all') {
-            // 使用快速搜索接口，搜索所有字段
-            const searchRes = await bookApi.searchBooks(this.searchKeyword.trim(), 'all')
-            
-            if (searchRes.code === 200 && searchRes.data.length > 0) {
-              // 对搜索结果应用分类筛选和库存筛选
-              let filteredBooks = searchRes.data
-              
-              // 应用分类筛选
-              if (this.categoryFilter !== '' && this.categoryFilter !== null) {
-                const categoryId = Number(this.categoryFilter)
-                filteredBooks = filteredBooks.filter(book => 
-                  book.category === categoryId
-                )
-              }
-              
-              // 应用库存筛选
-              if (this.availableOnly) {
-                filteredBooks = filteredBooks.filter(book => 
-                  book.availableCopies > 0
-                )
-              }
-              
-              // 对筛选后的结果进行分页
-              const start = (this.currentPage - 1) * this.pageSize
-              const end = start + this.pageSize
-              this.books = filteredBooks.slice(start, end)
-              this.total = filteredBooks.length
-            } else {
-              // 没有搜索结果，清空列表
-              this.books = []
-              this.total = 0
-            }
-            this.loading = false
-            return
-          } else {
-            // 使用特定字段搜索
-            params[this.searchField] = this.searchKeyword.trim()
-          }
-        }
-        
-        // 添加分类筛选 - 确保是数字
-        if (this.categoryFilter !== '' && this.categoryFilter !== null) {
-          params.category = Number(this.categoryFilter)
-        }
-        
-        // 添加库存筛选
-        if (this.availableOnly) {
-          params.availableOnly = true
-        }
-        
-        // 调用图书列表接口
-        const res = await bookApi.getBooks(params)
-        
+
+        console.log('🔍 搜索条件:', {
+          关键词: this.searchKeyword,
+          搜索字段: this.searchField,
+          分类: this.categoryFilter,
+          仅显示有库存: this.availableOnly
+        })
+
+        // 获取所有图书数据
+        var res = await bookApi.getBooks(params)
+        res = res.data
         if (res.code === 200) {
-          this.books = res.data.list
-          this.total = res.data.total
+          let allBooks = []
+
+          // 解析响应格式
+          if (Array.isArray(res.data)) {
+            allBooks = res.data
+          } else if (res.data && Array.isArray(res.data.list)) {
+            allBooks = res.data.list
+          } else if (res.data && Array.isArray(res.data.content)) {
+            allBooks = res.data.content
+          } else {
+            allBooks = res.data || []
+          }
+
+          // 格式化图书数据
+          const formattedBooks = allBooks.map(book => {
+            // 处理库存字段
+            const totalCopies = book.total_copies || book.quantity || book.totalCopies || 0
+            const availableCopies = book.available_copies || book.availableCopies || 0
+
+            return {
+              id: Number(book.id) || 0,
+              title: book.title || '未知书名',
+              author: book.author || '未知作者',
+              isbn: book.isbn || '',
+              category: book.category||'未知分类',
+              categoryId: Number(book.category) || 0,
+              totalCopies: Number(totalCopies),
+              availableCopies: Number(availableCopies),
+              publisher: book.publisher || '',
+              publishYear: book.publish_year || book.publishYear || '',
+              location: book.location || '',
+              description: book.description || '',
+              coverImage: book.cover_image || book.coverImage || '',
+              // 兼容字段
+              quantity: Number(totalCopies),
+              available: Number(availableCopies) > 0,
+              borrowedCount: book.borrowed_count || book.borrowedCount || 0
+            }
+          })
+          console.log(allBooks)
+          // **前端搜索逻辑**
+          let filteredBooks = [...formattedBooks]
+
+          // 1. 按关键词搜索
+          if (this.searchKeyword.trim()) {
+            const searchTerm = this.searchKeyword.trim().toLowerCase()
+
+            filteredBooks = filteredBooks.filter(book => {
+              if (this.searchField === 'all') {
+                // 搜索全部字段
+                const title = (book.title || '').toLowerCase()
+                const author = (book.author || '').toLowerCase()
+                const isbn = (book.isbn || '').toLowerCase()
+
+                return title.includes(searchTerm) ||
+                  author.includes(searchTerm) ||
+                  isbn.includes(searchTerm)
+              } else {
+                // 搜索特定字段
+                const fieldValue = (book[this.searchField] || '').toString().toLowerCase()
+                return fieldValue.includes(searchTerm)
+              }
+            })
+
+            console.log('🔍 关键词搜索后:', {
+              搜索词: searchTerm,
+              搜索字段: this.searchField,
+              搜索结果数: filteredBooks.length
+            })
+          }
+
+          // 2. 按分类筛选
+          if (this.categoryFilter !== '' && this.categoryFilter !== null) {
+            const categoryId = Number(this.categoryFilter)
+            filteredBooks = filteredBooks.filter(book =>
+              book.categoryId === categoryId
+            )
+            console.log(`📂 分类筛选 ${categoryId} 后:`, filteredBooks.length)
+          }
+
+          // 3. 按库存筛选
+          if (this.availableOnly) {
+            filteredBooks = filteredBooks.filter(book =>
+              book.availableCopies > 0
+            )
+            console.log('📦 库存筛选后:', filteredBooks.length)
+          }
+
+          // 设置总数
+          this.total = filteredBooks.length
+
+          // 分页处理
+          const start = (this.currentPage - 1) * this.pageSize
+          const end = start + this.pageSize
+          this.books = filteredBooks.slice(start, end)
+
+
+          if (filteredBooks.length === 0) {
+            this.$message.info('没有找到符合条件的图书')
+          }
+
         } else {
-          this.$message.error(res.message)
+          console.warn('获取图书列表失败:', res.message)
+          this.$message.error(res.message || '加载失败')
           this.books = []
           this.total = 0
         }
@@ -494,25 +495,25 @@ export default {
         this.loading = false
       }
     },
-    
+
     // 搜索
     handleSearch() {
       this.currentPage = 1
       this.loadBooks()
     },
-    
+
     // 分类变化
     handleCategoryChange() {
       this.currentPage = 1
       this.loadBooks()
     },
-    
+
     // 库存筛选变化
     handleAvailableChange() {
       this.currentPage = 1
       this.loadBooks()
     },
-    
+
     // 重置筛选
     resetFilters() {
       this.searchKeyword = ''
@@ -522,53 +523,53 @@ export default {
       this.currentPage = 1
       this.loadBooks()
     },
-    
+
     // 分页
     handleSizeChange(size) {
       this.pageSize = size
       this.currentPage = 1
       this.loadBooks()
     },
-    
+
     handlePageChange(page) {
       this.currentPage = page
       this.loadBooks()
     },
-    
+
     // 查看图书详情
     viewBookDetail(book) {
       this.selectedBook = book
       this.detailDialogVisible = true
     },
-    
+
     // 显示借阅对话框
     showBorrowDialog(book) {
       if (book.availableCopies <= 0) {
         this.$message.warning('该图书暂无库存')
         return
       }
-      
+
       this.bookToBorrow = book
       this.borrowDialogVisible = true
     },
-    
+
     // 确认借阅
     confirmBorrow() {
       this.$message.info('借阅功能需要管理员操作，请前往管理员处办理')
       this.borrowDialogVisible = false
     },
-    
+
     // 处理借阅图书
     handleBorrowBook(book) {
       this.detailDialogVisible = false
       this.showBorrowDialog(book)
     },
-    
+
     // 根据数字获取分类名称
     getCategoryName(categoryCode) {
       return BOOK_CATEGORIES[categoryCode] || '未知分类'
     },
-    
+
     // 退出登录
     logout() {
       localStorage.removeItem('user')
@@ -579,7 +580,6 @@ export default {
 </script>
 
 <style scoped>
-
 /* 无标题对话框样式 */
 .no-header-dialog .el-dialog__header {
   display: none;
@@ -696,11 +696,9 @@ export default {
 
 /* 古籍风格板块 */
 .ancient-section {
-  background: linear-gradient(
-    to bottom right,
-    rgba(255, 254, 251, 0.9),
-    rgba(255, 255, 254, 0.1)
-  );
+  background: linear-gradient(to bottom right,
+      rgba(255, 254, 251, 0.9),
+      rgba(255, 255, 254, 0.1));
   backdrop-filter: blur(4px);
   padding: 30px;
   border-radius: 12px;
@@ -817,21 +815,21 @@ export default {
 }
 
 /* 复选框样式 */
-.ancient-checkbox >>> .el-checkbox__inner {
+.ancient-checkbox>>>.el-checkbox__inner {
   border-color: #e8d4b8;
   background-color: #fff;
 }
 
-.ancient-checkbox >>> .el-checkbox__inner:hover {
+.ancient-checkbox>>>.el-checkbox__inner:hover {
   border-color: #d4b483;
 }
 
-.ancient-checkbox >>> .el-checkbox__input.is-checked .el-checkbox__inner {
+.ancient-checkbox>>>.el-checkbox__input.is-checked .el-checkbox__inner {
   background-color: #a7874b;
   border-color: #8b7355;
 }
 
-.ancient-checkbox >>> .el-checkbox__label {
+.ancient-checkbox>>>.el-checkbox__label {
   color: #5b4636;
 
 }
@@ -865,26 +863,29 @@ export default {
   overflow: hidden;
   transition: all 0.3s;
   cursor: pointer;
-  background: linear-gradient(
-    to bottom right,
-    rgba(255, 254, 251, 0.95),
-    rgba(255, 255, 254, 0.1)
-  );
+  background: linear-gradient(to bottom right,
+      rgba(255, 254, 251, 0.95),
+      rgba(255, 255, 254, 0.1));
   backdrop-filter: blur(4px);
   margin: 15px 20px;
-  
+
   /* 添加右下侧阴影 */
-  box-shadow: 
-    2px 2px 5px rgba(0, 0, 0, 0.1), /* 右下阴影 */
-    0 0 1px rgba(0, 0, 0, 0.05);    /* 轻微四周阴影 */
+  box-shadow:
+    2px 2px 5px rgba(0, 0, 0, 0.1),
+    /* 右下阴影 */
+    0 0 1px rgba(0, 0, 0, 0.05);
+  /* 轻微四周阴影 */
 }
 
 .book-card:hover {
   /* 增强右下阴影，同时保留悬浮效果 */
-  box-shadow: 
-    4px 4px 10px rgba(155, 135, 110, 0.3), /* 增强右下阴影 */
-    0 0 2px rgba(0, 0, 0, 0.1),            /* 轻微四周阴影 */
-    0 8px 24px rgba(155, 135, 110, 0.2);   /* 原有悬浮阴影效果 */
+  box-shadow:
+    4px 4px 10px rgba(155, 135, 110, 0.3),
+    /* 增强右下阴影 */
+    0 0 2px rgba(0, 0, 0, 0.1),
+    /* 轻微四周阴影 */
+    0 8px 24px rgba(155, 135, 110, 0.2);
+  /* 原有悬浮阴影效果 */
   transform: translateY(-4px);
   border-color: #d4b483;
 }
@@ -897,7 +898,8 @@ export default {
   align-items: center;
   justify-content: center;
   border-bottom: 1px solid #e8d4b8;
-  overflow: hidden; /* 确保阴影不会溢出 */
+  overflow: hidden;
+  /* 确保阴影不会溢出 */
 }
 
 .book-card::before {
@@ -907,9 +909,9 @@ export default {
   top: 0;
   bottom: 0;
   width: 15px;
-  background: linear-gradient(to right, 
-    rgba(78, 48, 17, 0.2), 
-    rgba(71, 52, 16, 0.1));
+  background: linear-gradient(to right,
+      rgba(78, 48, 17, 0.2),
+      rgba(71, 52, 16, 0.1));
   z-index: 1;
 }
 
@@ -917,7 +919,8 @@ export default {
 
 /* 书本信息区域 - 内边距调小 */
 .book-info {
-  padding: 15px 15px 15px 30px; /* 上 右 下 左 - 增加左内边距 */
+  padding: 15px 15px 15px 30px;
+  /* 上 右 下 左 - 增加左内边距 */
   position: relative;
   z-index: 2;
 }
@@ -930,7 +933,8 @@ export default {
 
 .book-title {
   margin: 0 0 5px 0;
-  font-size: 16px; /* 字体大小调小 */
+  font-size: 16px;
+  /* 字体大小调小 */
   font-weight: bold;
   color: #3c2c1e;
   line-height: 1.4;
@@ -950,7 +954,8 @@ export default {
   content: "「";
   position: absolute;
   color: #a7874b;
-  font-size: 18px; /* 字体大小调小 */
+  font-size: 18px;
+  /* 字体大小调小 */
 }
 
 .book-title::before {
@@ -989,8 +994,17 @@ export default {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 0.5; transform: scale(0.8); }
-  50% { opacity: 1; transform: scale(1); }
+
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(0.8);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 /* 作者信息 */
@@ -1004,7 +1018,8 @@ export default {
 }
 
 .author-icon {
-  width: 28px; /* 尺寸调小 */
+  width: 28px;
+  /* 尺寸调小 */
   height: 28px;
   background: linear-gradient(135deg, #f5f0e6, #e8d4b8);
   border-radius: 50%;
@@ -1012,14 +1027,16 @@ export default {
   align-items: center;
   justify-content: center;
   color: #5b4636;
-  font-size: 14px; /* 图标大小调小 */
+  font-size: 14px;
+  /* 图标大小调小 */
   flex-shrink: 0;
 }
 
 .author-text {
   flex: 1;
   color: #7c7262;
-  font-size: 13px; /* 字体大小调小 */
+  font-size: 13px;
+  /* 字体大小调小 */
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1039,7 +1056,8 @@ export default {
 .book-meta-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 10px; /* 间距调小 */
+  gap: 10px;
+  /* 间距调小 */
   margin-bottom: 15px;
 }
 
@@ -1047,7 +1065,8 @@ export default {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px; /* 内边距调小 */
+  padding: 8px;
+  /* 内边距调小 */
   background: rgba(250, 248, 245, 0.8);
   border-radius: 6px;
   border: 1px solid rgba(232, 212, 184, 0.4);
@@ -1061,7 +1080,8 @@ export default {
 }
 
 .meta-icon {
-  width: 22px; /* 尺寸调小 */
+  width: 22px;
+  /* 尺寸调小 */
   height: 22px;
   background: linear-gradient(135deg, #a7874b, #8b7355);
   border-radius: 50%;
@@ -1069,7 +1089,8 @@ export default {
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: 11px; /* 图标大小调小 */
+  font-size: 11px;
+  /* 图标大小调小 */
   flex-shrink: 0;
 }
 
@@ -1079,7 +1100,8 @@ export default {
 }
 
 .meta-label {
-  font-size: 10px; /* 字体大小调小 */
+  font-size: 10px;
+  /* 字体大小调小 */
   color: #8b7355;
   margin-bottom: 1px;
   text-transform: uppercase;
@@ -1087,7 +1109,8 @@ export default {
 }
 
 .meta-value {
-  font-size: 12px; /* 字体大小调小 */
+  font-size: 12px;
+  /* 字体大小调小 */
   color: #5b4636;
   font-weight: 500;
   overflow: hidden;
@@ -1107,7 +1130,8 @@ export default {
 
 .isbn {
   font-family: monospace;
-  font-size: 11px; /* 字体大小调小 */
+  font-size: 11px;
+  /* 字体大小调小 */
   letter-spacing: 0.3px;
 }
 
@@ -1118,7 +1142,8 @@ export default {
 
 .action-buttons {
   display: flex;
-  gap: 8px; /* 间距调小 */
+  gap: 8px;
+  /* 间距调小 */
   margin-bottom: 10px;
 }
 
@@ -1128,8 +1153,10 @@ export default {
   align-items: center;
   justify-content: center;
   gap: 5px;
-  padding: 6px 10px !important; /* 内边距调小 */
-  font-size: 12px !important; /* 字体大小调小 */
+  padding: 6px 10px !important;
+  /* 内边距调小 */
+  font-size: 12px !important;
+  /* 字体大小调小 */
 }
 
 .quick-info-tip {
@@ -1138,7 +1165,8 @@ export default {
   background: rgba(167, 135, 75, 0.08);
   border-radius: 6px;
   color: #8b7355;
-  font-size: 11px; /* 字体大小调小 */
+  font-size: 11px;
+  /* 字体大小调小 */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1164,7 +1192,8 @@ export default {
 
 .corner-decor {
   position: absolute;
-  width: 16px; /* 尺寸调小 */
+  width: 16px;
+  /* 尺寸调小 */
   height: 16px;
 }
 
@@ -1213,10 +1242,10 @@ export default {
   color: white;
   font-size: 32px;
   font-weight: bold;
-padding-left: 8px;
+  padding-left: 8px;
   font-family: "STKaiti", "KaiTi", serif;
 
-  
+
 }
 
 .out-of-stock {
@@ -1358,9 +1387,10 @@ padding-left: 8px;
   border-color: #d4b483 !important;
   color: #5b4636 !important;
 }
-.pagination >>> .el-pagination.is-background .btn-prev,
-.pagination >>> .el-pagination.is-background .btn-next,
-.pagination >>> .el-pagination.is-background .el-pager li {
+
+.pagination>>>.el-pagination.is-background .btn-prev,
+.pagination>>>.el-pagination.is-background .btn-next,
+.pagination>>>.el-pagination.is-background .el-pager li {
   background: #ffffff !important;
   border: 1px solid #e8d4b8 !important;
   color: #5b4636 !important;
@@ -1370,9 +1400,9 @@ padding-left: 8px;
 }
 
 /* 悬停效果 */
-.pagination >>> .el-pagination.is-background .btn-prev:hover,
-.pagination >>> .el-pagination.is-background .btn-next:hover,
-.pagination >>> .el-pagination.is-background .el-pager li:hover {
+.pagination>>>.el-pagination.is-background .btn-prev:hover,
+.pagination>>>.el-pagination.is-background .btn-next:hover,
+.pagination>>>.el-pagination.is-background .el-pager li:hover {
   background: #f8f1e7 !important;
   border-color: #ddc29b !important;
   color: #5b4636 !important;
@@ -1380,7 +1410,7 @@ padding-left: 8px;
 }
 
 /* 当前选中页数 */
-.pagination >>> .el-pagination.is-background .el-pager li.active {
+.pagination>>>.el-pagination.is-background .el-pager li.active {
   background: #b49877 !important;
   border-color: #8b7355 !important;
   color: white !important;
@@ -1390,8 +1420,8 @@ padding-left: 8px;
 
 
 /* 禁用按钮的样式 */
-.pagination >>> .el-pagination.is-background .btn-prev.disabled,
-.pagination >>> .el-pagination.is-background .btn-next.disabled {
+.pagination>>>.el-pagination.is-background .btn-prev.disabled,
+.pagination>>>.el-pagination.is-background .btn-next.disabled {
   background: #f5f0e6 !important;
   border-color: #e8d4b8 !important;
   color: #c0c4cc !important;
@@ -1399,14 +1429,14 @@ padding-left: 8px;
 }
 
 /* 分页文字信息 */
-.pagination >>> .el-pagination__total,
-.pagination >>> .el-pagination__jump {
+.pagination>>>.el-pagination__total,
+.pagination>>>.el-pagination__jump {
   color: #5b4636 !important;
   font-family: "Microsoft YaHei", "Segoe UI", sans-serif !important;
 }
 
 /* 页码输入框 */
-.pagination >>> .el-pagination__editor.el-input .el-input__inner {
+.pagination>>>.el-pagination__editor.el-input .el-input__inner {
   border: 1px solid #e8d4b8 !important;
   background: #ffffff !important;
   color: #5b4636 !important;
@@ -1475,37 +1505,37 @@ padding-left: 8px;
   .user-header {
     padding: 0 15px;
   }
-  
+
   .logo {
     margin: 2px 10px;
   }
-  
+
   .logo h2 {
     font-size: 20px;
   }
-  
+
   .main-content {
     padding: 0 15px;
   }
-  
+
   .search-filter-area {
     padding: 20px 15px;
   }
-  
+
   .filter-box {
     flex-direction: column;
     align-items: flex-start;
   }
-  
-  .filter-box > * {
+
+  .filter-box>* {
     margin-bottom: 10px;
   }
-  
+
   .book-grid {
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     gap: 15px;
   }
-  
+
   .ancient-section {
     padding: 20px 15px;
   }
@@ -1515,25 +1545,25 @@ padding-left: 8px;
   .logo h2 {
     font-size: 18px;
   }
-  
+
   .nav-center .el-menu-item {
     padding: 0 8px;
     font-size: 13px;
   }
-  
+
   .user-info .el-dropdown-link {
     padding: 6px 10px;
     font-size: 13px;
   }
-  
+
   .book-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .book-cover {
     height: 150px;
   }
-  
+
   .cover-placeholder {
     font-size: 28px;
   }

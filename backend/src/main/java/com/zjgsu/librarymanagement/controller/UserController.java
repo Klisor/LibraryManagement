@@ -66,7 +66,7 @@ public class UserController {
     @GetMapping("/{id}")
     public ApiResponse<UserDTO> getUser(@PathVariable Long id,
                                         @RequestHeader("Authorization") String tk) {
-        if (!tools.isAdmin(tk)||tools.isSelf(id,tk)) return ApiResponse.error("无权限");
+        if (!tools.isAdmin(tk)&&!tools.isSelf(id,tk)) return ApiResponse.error("无权限");
         UserDTO user = userService.getUserById(id);
         return ApiResponse.success(user);
     }
@@ -79,7 +79,7 @@ public class UserController {
             @PathVariable Long id,
             @Validated @RequestBody UserUpdateRequest updateRequest,
             @RequestHeader("Authorization") String tk) {
-        if (!tools.isAdmin(tk)||tools.isSelf(id,tk)) return ApiResponse.error("无权限");
+        if (!tools.isAdmin(tk)&&!tools.isSelf(id,tk)) return ApiResponse.error("无权限");
         UserDTO updatedUser = userService.updateUser(id, updateRequest);
         return ApiResponse.success("更新成功", updatedUser);
     }

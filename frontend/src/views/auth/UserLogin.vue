@@ -66,181 +66,270 @@
   </div>
 </template>
 
+
 <script>
-export default {
-  name: 'UserLogin',
-  data() {
-    return {
-      form: {
-        username: 'user1',
-        password: '123456'
+  import { authApi } from '@/api/auth'
+  import { API_CONFIG } from '@/config/api.config'
+  import request from '@/utils/request'
+  
+  export default {
+    name: 'UserLogin',
+    data() {
+      return {
+        form: {
+          username: 'user1',
+          password: '123456'
+        },
+        loading: false,
+        debug: process.env.NODE_ENV === 'development',
+        activeDebugPanel: process.env.NODE_ENV === 'development' ? ['1'] : [],
+        apiConfig: API_CONFIG,
+        rules: {
+          username: [
+            { required: true, message: '请输入用户名', trigger: 'blur' },
+            { min: 3, message: '用户名长度至少3个字符', trigger: 'blur' }
+          ],
+          password: [
+            { required: true, message: '请输入密码', trigger: 'blur' },
+            { min: 6, message: '密码长度至少6个字符', trigger: 'blur' }
+          ]
+        }
+      }
+    },
+    methods: {
+      async handleLogin() {
+
+        this.$refs.loginForm.validate(async (valid) => {
+          if (!valid) return
+          
+          this.loading = true
+          
+          try {
+            const credentials = {
+              username: this.form.username,
+              password: this.form.password
+            }
+            var response = await authApi.login(credentials)
+         
+            response=response.data
+            if (response.code === 200) {
+              response=response.data
+              this.$message.success(response.message || '登录成功')
+              if (response.data && response.data.token) {
+                const userInfo = {
+                  ...response.data.user,
+                  token: response.data.token,
+                  expiresIn: response.data.expiresIn
+                }
+                console.log("login!!!")
+                localStorage.setItem('user', JSON.stringify(userInfo))
+              }
+              
+              this.$nextTick(() => {
+                this.$router.replace('/user')
+              })
+            } else {
+              this.$message.error(response.message || '登录失败')
+            }
+            
+          } catch (error) {
+            if (error.response) {
+              const status = error.response.status
+              const errorData = error.response.data
+              
+              switch (status) {
+                case 400:
+                  if (errorData && errorData.message) {
+                    this.$message.error(errorData.message)
+                  } else {
+                    this.$message.error('用户名或密码错误')
+                  }
+                  break
+                case 401:
+                  this.$message.error('认证失败')
+                  break
+                case 404:
+                  this.$message.error('登录接口不存在')
+                  break
+                case 500:
+                  if (errorData && errorData.message) {
+                    this.$message.error('服务器错误: ' + errorData.message)
+                  } else {
+                    this.$message.error('服务器内部错误')
+                  }
+                  break
+                default:
+                  this.$message.error(`请求失败: ${status}`)
+              }
+            } else if (error.message === 'Network Error') {
+              this.$message.error('网络错误，请检查网络连接')
+            } else if (error.message) {
+              this.$message.error(error.message)
+            } else {
+              this.$message.error('登录失败，请重试')
+            }
+          } finally {
+            this.loading = false
+          }
+        })
       },
-      loading: false,
-      rules: {
-        username: [
-          { required: true, message: '请输入用户名或邮箱', trigger: 'blur' }
-        ],
-        password: [
-          { required: true, message: '请输入密码', trigger: 'blur' }
+      
+      setTestUser(username, password) {
+        this.form.username = username
+        this.form.password = password
+        this.$message.info(`已设置为测试用户: ${username}`)
+      },
+      
+      async testRealLogin(username, password) {
+        const credentials = {
+          username: username,
+          password: password
+        }
+        
+        try {
+          const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(credentials)
+          })
+          
+          const data = await response.json()
+          
+          if (response.ok && data.code === 200) {
+            this.$message.success(`✅ 登录成功: ${data.message}`)
+            return { success: true, data: data }
+          } else if (response.status === 400) {
+            this.$message.warning(`⚠️ 登录失败: ${data.message || '用户名或密码错误'}`)
+            return { success: false, error: data.message }
+          } else if (response.status === 500) {
+            this.$message.error(`❌ 服务器错误: ${data.message || '内部错误'}`)
+            return { success: false, error: data.message }
+          } else {
+            this.$message.warning(`响应状态: ${response.status}, 消息: ${data.message}`)
+            return { success: false, error: data.message }
+          }
+        } catch (error) {
+          this.$message.error('测试失败: ' + error.message)
+          return { success: false, error: error.message }
+        }
+      },
+      
+      async testApiConnection() {
+        try {
+          const response = await fetch('/api/users')
+          const data = await response.json()
+          
+          if (response.ok) {
+            this.$message.success(`✅ API连接正常，获取到 ${data.length || data.data?.length || 0} 个用户`)
+          } else {
+            this.$message.error(`API错误: ${response.status}`)
+          }
+        } catch (error) {
+          this.$message.error('API连接失败: ' + error.message)
+        }
+      },
+      
+      async testAuthLogin() {
+        this.$message.info('测试 /auth/login 接口...')
+        
+        const testData = {
+          username: 'admin',
+          password: 'admin'
+        }
+        
+        try {
+          const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(testData)
+          })
+          
+          let data
+          try {
+            data = await response.json()
+          } catch (e) {
+            const text = await response.text()
+            this.$message.error('响应不是JSON: ' + text.substring(0, 100))
+            return
+          }
+          
+          if (response.ok) {
+            if (data.code === 200) {
+              this.$message.success('✅ 接口正常，登录成功')
+            } else {
+              this.$message.warning(`接口返回 ${data.code}: ${data.message}`)
+            }
+          } else {
+            this.$message.error(`接口错误 ${response.status}: ${data.message || '未知错误'}`)
+          }
+        } catch (error) {
+          this.$message.error('测试失败: ' + error.message)
+        }
+      },
+      
+      async testRealLoginWithCurrentUser() {
+        const result = await this.testRealLogin(this.form.username, this.form.password)
+        if (result.success) {
+          this.$message.success('当前用户登录测试成功！')
+        }
+      },
+      
+      async batchTestLogin() {
+        this.$message.info('开始批量测试登录...')
+        
+        const testCases = [
+          { username: 'admin', password: 'admin', desc: '管理员' },
+          { username: '张三', password: '123456', desc: '用户张三' },
+          { username: 'user1', password: '123456', desc: '用户user1' },
+          { username: '李四', password: '123456', desc: '用户李四' },
+          { username: '王五', password: '123456', desc: '用户王五' }
         ]
+        
+        let successCount = 0
+        
+        for (const testCase of testCases) {
+          this.$message.info(`测试用户: ${testCase.desc} (${testCase.username})`)
+          
+          const result = await this.testRealLogin(testCase.username, testCase.password)
+          if (result.success) {
+            successCount++
+          }
+          
+          await new Promise(resolve => setTimeout(resolve, 1000))
+        }
+        
+        this.$message.info(`批量测试完成，成功: ${successCount}/${testCases.length}`)
+      },
+      
+      clearLocalStorage() {
+        localStorage.clear()
+        this.$message.success('已清除localStorage')
+      },
+      
+      showLocalStorage() {
+        const user = localStorage.getItem('user')
+        const registeredUsers = localStorage.getItem('registeredUsers')
+        
+        this.$message.info('localStorage内容已输出到控制台')
+      }
+    },
+    mounted() {
+      if (this.debug) {
+        const savedUser = localStorage.getItem('user')
+        if (savedUser) {
+          try {
+            JSON.parse(savedUser)
+          } catch (e) {}
+        }
       }
     }
-  },
-  methods: {
-    handleLogin() {
-      this.$refs.loginForm.validate((valid) => {
-        if (!valid) return
-        
-        this.loading = true
-        
-        // 模拟用户登录 - 支持多种验证方式
-        setTimeout(() => {
-          // 1. 从 localStorage 中获取所有注册的用户
-          const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
-          
-          // 2. 从模拟用户数据中获取所有用户（不仅仅是前5个）
-          const mockUsersAll = [
-            {
-              id: 1,
-              username: 'admin',
-              password: '123456',
-              email: 'admin@example.com',
-              role: 'ADMIN',
-              maxBorrowCount: 10,
-              borrowedCount: 0,
-              createdAt: '2024-01-01T00:00:00.000Z',
-              updatedAt: '2024-01-01T00:00:00.000Z'
-            },
-            {
-              id: 2,
-              username: 'user1',
-              password: '123456',
-              email: 'user1@example.com',
-              role: 'USER',
-              maxBorrowCount: 5,
-              borrowedCount: 2,
-              createdAt: '2024-01-02T00:00:00.000Z',
-              updatedAt: '2024-01-02T00:00:00.000Z'
-            },
-            {
-              id: 3,
-              username: '李四',
-              password: '123456',
-              email: 'lisi@example.com',
-              role: 'USER',
-              maxBorrowCount: 5,
-              borrowedCount: 1,
-              createdAt: '2024-01-03T00:00:00.000Z',
-              updatedAt: '2024-01-03T00:00:00.000Z'
-            },
-            {
-              id: 4,
-              username: '王五',
-              password: '123456',
-              email: 'wangwu@example.com',
-              role: 'USER',
-              maxBorrowCount: 5,
-              borrowedCount: 0,
-              createdAt: '2024-01-04T00:00:00.000Z',
-              updatedAt: '2024-01-04T00:00:00.000Z'
-            },
-            {
-              id: 5,
-              username: '赵六',
-              password: '123456',
-              email: 'zhaoliu@example.com',
-              role: 'USER',
-              maxBorrowCount: 5,
-              borrowedCount: 3,
-              createdAt: '2024-01-05T00:00:00.000Z',
-              updatedAt: '2024-01-05T00:00:00.000Z'
-            },
-            // 包含通过循环生成的用户（id: 6-20）
-            ...[6,7,8,9,10,11,12,13,14,15,16,17,18,19,20].map(i => ({
-              id: i,
-              username: `user${i}`,
-              password: '123456',
-              email: `user${i}@example.com`,
-              role: 'USER',
-              maxBorrowCount: 5,
-              borrowedCount: Math.floor(Math.random() * 6),
-              createdAt: new Date(2024, 0, i).toISOString(),
-              updatedAt: new Date(2024, 0, i).toISOString()
-            }))
-          ]
-          
-          // 3. 合并所有用户数据
-          const allUsers = [...mockUsersAll, ...registeredUsers]
-          
-          // 4. 查找用户（支持用户名或邮箱登录）
-          let user = allUsers.find(u => {
-            // 检查用户名或邮箱是否匹配
-            const isUsernameMatch = u.username === this.form.username
-            const isEmailMatch = u.email === this.form.username
-            
-            // 检查密码是否匹配
-            const isPasswordMatch = u.password === this.form.password
-            
-            // 允许普通用户和管理员角色登录用户端
-            const isAllowedRole = u.role === 'USER' || u.role === 'ADMIN'
-            
-            return (isUsernameMatch || isEmailMatch) && isPasswordMatch && isAllowedRole
-          })
-
-          // 5. 如果没有找到，尝试通过用户ID查找（用户名修改后的情况）
-          if (!user) {
-            // 从 localStorage 获取最后登录的用户信息
-            const lastUserStr = localStorage.getItem('user')
-            if (lastUserStr) {
-              try {
-                const lastUser = JSON.parse(lastUserStr)
-                // 尝试通过用户ID查找（用户可能修改了用户名）
-                user = allUsers.find(u => {
-                  // 检查是否是同一个用户
-                  return u.id === lastUser.id && 
-                        u.password === this.form.password && 
-                        u.role === 'USER'
-                })
-                
-                if (user) {
-                  console.log('检测到用户名已修改，使用ID登录成功')
-                  // 更新表单中的用户名为新的用户名
-                  this.form.username = user.username
-                }
-              } catch (e) {
-                console.error('解析用户信息失败:', e)
-              }
-            }
-          }
-          
-          if (user) {
-            // 移除密码字段，将用户信息存入 localStorage
-            const { password, ...userWithoutPassword } = user
-            
-            // 管理员和普通用户都直接存入user，不再创建临时身份
-            localStorage.setItem('user', JSON.stringify(userWithoutPassword))
-            
-            this.$message.success('登录成功')
-            
-            // 确保在Vue的下一个更新周期后跳转
-            this.$nextTick(() => {
-              // 使用replace而不是push，避免登录页面留在历史记录中
-              this.$router.replace('/user').catch(() => {
-                // 如果路由跳转失败，fallback到首页
-                this.$router.push('/user')
-              })
-            })
-          } else {
-            this.$message.error('用户名或密码错误')
-          }
-          this.loading = false
-        }, 500)
-      })
-    }
   }
-}
-</script>
-
+  </script>
+  
 <style scoped>
 .ancient-login {
   height: 100vh;

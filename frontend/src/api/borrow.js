@@ -305,11 +305,6 @@ const mockApi = {
     // 1. 首先尝试从 registeredUsers 中找用户
     let user = registeredUsers.find(u => Number(u.id) === Number(record.userId))
     
-    // 2. 如果没找到，再从 mockUsers 中找
-    if (!user) {
-      user = mockUsers.find(u => u.id === record.userId)
-    }
-    
     if (user) {
       user.borrowedCount = Math.max(0, user.borrowedCount - 1)
       
@@ -512,25 +507,233 @@ const mockApi = {
 }
 
 // 真实API
+// 真实API - 修改为支持分页
 const realApi = {
-  // 获取借阅记录列表（分页）
-  async getBorrowRecords(params) {
-    return request.get('/borrow/records', { params })
+  // 获取借阅记录列表（分页）- 修改为与mockApi相同的接口
+  async getBorrowRecords(params = {}) {
+    // 默认参数
+    const {
+      page = 1,
+      size = 10,
+      status = '',
+      userId = '',
+      keyword = '',
+      userName = '',
+      bookTitle = ''
+    } = params
+    
+    console.log('📤 真实API查询参数:', params)
+    
+    try {
+      // 1. 先调用后端API获取所有数据（或根据参数过滤）
+      let response
+      
+      // 构建查询参数
+      const queryParams = {}
+      if (keyword && keyword.trim()) {
+        queryParams.keyword = keyword.trim()
+      } else if (userName && userName.trim()) {
+        queryParams.keyword = userName.trim()
+      } else if (bookTitle && bookTitle.trim()) {
+        queryParams.keyword = bookTitle.trim()
+      }
+      
+      if (userId && userId.toString().trim()) {
+        queryParams.userId = userId
+      }
+      
+      if (status && status.trim()) {
+        queryParams.status = status
+      }
+      
+      // 调用后端API - 这里假设后端支持这些参数
+      response = await request.get('/borrow/records', { 
+        params: queryParams 
+      })
+      
+      console.log('📥 后端API响应:', {
+        状态码: response.status,
+        数据长度: Array.isArray(response.data?.data) ? response.data.data.length : '未知'
+      })
+      
+      // 2. 解析响应数据
+      let records = []
+      if (response.data && response.data.code === 200) {
+        // 根据不同的响应格式处理
+        if (Array.isArray(response.data.data)) {
+          records = response.data.data
+        } else if (response.data.data && Array.isArray(response.data.data.list)) {
+          records = response.data.data.list
+        } else if (response.data.data && Array.isArray(response.data.data.content)) {
+          records = response.data.data.content
+        } else if (Array.isArray(response.data.data)) {
+          records = response.data.data
+        } else {
+          records = response.data.data || []
+        }
+      } else {
+        // 如果API不支持查询参数，获取所有记录在前端处理
+        console.log('⚠️ 后端API不支持查询参数，获取所有数据在前端处理')
+        const allResponse = await request.get('/borrow/records')
+        if (allResponse.data && allResponse.data.code === 200) {
+          if (Array.isArray(allResponse.data.data)) {
+            records = allResponse.data.data
+          } else if (allResponse.data.data && Array.isArray(allResponse.data.data.list)) {
+            records = allResponse.data.data.list
+          } else {
+            records = allResponse.data.data || []
+          }
+        }
+      }
+      
+      // 3. 在前端进行筛选（模仿mockApi逻辑）
+      let filteredRecords = records
+      
+      // 3.1 状态过滤
+      if (status && status.trim()) {
+        const statusUpper = status.toUpperCase()
+        filteredRecords = filteredRecords.filter(record => {
+          let recordStatus = record.status?.toUpperCase()
+          
+          // 动态检查逾期
+          if (recordStatus === 'BORROWED') {
+            const now = new Date()
+            const dueDate = new Date(record.dueDate)
+            if (dueDate < now) {
+              recordStatus = 'OVERDUE'
+            }
+          }
+          
+          return recordStatus === statusUpper
+        })
+      }
+      
+      // 3.2 用户ID过滤
+      if (userId && userId.toString().trim()) {
+        filteredRecords = filteredRecords.filter(record => 
+          record.userId === Number(userId)
+        )
+      }
+      
+      // 3.3 关键词搜索
+      const searchTerm = keyword.trim().toLowerCase() || 
+                        userName.trim().toLowerCase() || 
+                        bookTitle.trim().toLowerCase()
+      
+      if (searchTerm) {
+        console.log(`🔍 在前端搜索关键词: "${searchTerm}"`)
+        
+        // 获取用户和图书信息用于搜索
+        const userIds = [...new Set(filteredRecords.map(r => r.userId).filter(Boolean))]
+        const bookIds = [...new Set(filteredRecords.map(r => r.bookId).filter(Boolean))]
+        
+        // 批量获取用户信息
+        let userInfos = []
+        let bookInfos = []
+        
+        try {
+          // 并行获取用户和图书信息
+          const [usersRes, booksRes] = await Promise.all([
+            Promise.all(userIds.map(id => 
+              userApi.getUserDetail(id).catch(() => null)
+            )),
+            Promise.all(bookIds.map(id => 
+              bookApi.getBookDetail(id).catch(() => null)
+            ))
+          ])
+          
+          userInfos = usersRes.map(res => 
+            res && res.data && res.data.code === 200 ? res.data.data : null
+          ).filter(Boolean)
+          
+          bookInfos = booksRes.map(res => 
+            res && res.data && res.data.code === 200 ? res.data.data : null
+          ).filter(Boolean)
+          
+        } catch (error) {
+          console.error('获取用户/图书信息失败:', error)
+        }
+        
+        // 创建映射
+        const userMap = new Map(userInfos.map(user => [user.id, user]))
+        const bookMap = new Map(bookInfos.map(book => [book.id, book]))
+        
+        filteredRecords = filteredRecords.filter(record => {
+          const user = userMap.get(record.userId)
+          const book = bookMap.get(record.bookId)
+          
+          // 检查所有可能的匹配字段
+          const matches = [
+            // 用户相关
+            record.userId?.toString().includes(searchTerm),
+            record.userName?.toLowerCase().includes(searchTerm),
+            user?.username?.toLowerCase().includes(searchTerm),
+            user?.email?.toLowerCase().includes(searchTerm),
+            
+            // 图书相关
+            record.bookId?.toString().includes(searchTerm),
+            record.bookTitle?.toLowerCase().includes(searchTerm),
+            book?.title?.toLowerCase().includes(searchTerm),
+            book?.author?.toLowerCase().includes(searchTerm),
+            book?.isbn?.toLowerCase().includes(searchTerm)
+          ]
+          
+          // 只要有一个匹配就返回true
+          return matches.some(match => match === true)
+        })
+      }
+      
+      // 4. 分页处理
+      const start = (page - 1) * size
+      const end = start + size
+      const paginatedRecords = filteredRecords.slice(start, end)
+      
+      // 5. 返回与mockApi相同的格式
+      return {
+        data: {
+          code: 200,
+          message: '成功',
+          data: {
+            total: filteredRecords.length,
+            page: Number(page),
+            size: Number(size),
+            list: paginatedRecords
+          }
+        }
+      }
+      
+    } catch (error) {
+      console.error('realApi.getBorrowRecords 错误:', error)
+      
+      // 错误时返回空数据
+      return {
+        data: {
+          code: 500,
+          message: '获取借阅记录失败',
+          data: {
+            total: 0,
+            page: Number(page),
+            size: Number(size),
+            list: []
+          }
+        }
+      }
+    }
   },
   
   // 借阅图书
   async borrowBook(data) {
-    return request.post('/borrow/borrow', data)
+    return request.post('/borrow', data)
   },
   
   // 归还图书
   async returnBook(recordId) {
-    return request.post(`/borrow/return/${recordId}`)
+    return request.post(`/borrow/${recordId}/return`)
   },
   
   // 续借图书
   async renewBook(recordId) {
-    return request.post(`/borrow/renew/${recordId}`)
+    return request.post(`/borrow/${recordId}/renew`)
   },
   
   // 获取逾期记录

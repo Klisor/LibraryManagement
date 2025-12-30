@@ -7,14 +7,8 @@
           <img src="@/assets/image/icons/book1.png" alt="图书管理系统" class="logo-img">
           <h3>知行书阁（后台）</h3>
         </div>
-        <el-menu
-          :default-active="$route.path"
-          background-color="#f9f7f3"
-          text-color="#5b4636"
-          active-text-color="#a7874b"
-          :router="true"
-          class="ancient-menu"
-        >
+        <el-menu :default-active="$route.path" background-color="#f9f7f3" text-color="#5b4636"
+          active-text-color="#a7874b" :router="true" class="ancient-menu">
           <el-menu-item index="/admin">
             <i class="el-icon-s-home"></i>
             <span>仪表板</span>
@@ -33,7 +27,7 @@
           </el-menu-item>
         </el-menu>
       </el-aside>
-      
+
       <!-- 主内容区 -->
       <el-container>
         <!-- 顶部导航栏 -->
@@ -52,7 +46,7 @@
             </el-dropdown>
           </div>
         </el-header>
-        
+
         <!-- 内容区 -->
         <el-main class="ancient-main">
           <div class="user-container">
@@ -63,41 +57,21 @@
                 添加用户
               </el-button>
             </div>
-          
+
             <!-- 搜索和筛选区域 - 与BookManagement完全一致 -->
             <div class="search-bar ancient-section">
               <el-row :gutter="20">
                 <el-col :xs="24" :sm="12" :md="6">
-                  <el-input
-                    v-model="searchForm.username"
-                    placeholder="按用户名搜索"
-                    prefix-icon="el-icon-search"
-                    clearable
-                    @clear="handleSearch"
-                    @keyup.enter.native="handleSearch"
-                    class="ancient-input"
-                  ></el-input>
+                  <el-input v-model="searchForm.username" placeholder="按用户名搜索" prefix-icon="el-icon-search" clearable
+                    @clear="handleSearch" @keyup.enter.native="handleSearch" class="ancient-input"></el-input>
                 </el-col>
                 <el-col :xs="24" :sm="12" :md="6">
-                  <el-input
-                    v-model="searchForm.email"
-                    placeholder="按邮箱搜索"
-                    prefix-icon="el-icon-user"
-                    clearable
-                    @clear="handleSearch"
-                    @keyup.enter.native="handleSearch"
-                    class="ancient-input"
-                  ></el-input>
+                  <el-input v-model="searchForm.email" placeholder="按邮箱搜索" prefix-icon="el-icon-user" clearable
+                    @clear="handleSearch" @keyup.enter.native="handleSearch" class="ancient-input"></el-input>
                 </el-col>
                 <el-col :xs="24" :sm="12" :md="6">
-                  <el-select
-                    v-model="searchForm.role"
-                    placeholder="角色筛选"
-                    clearable
-                    style="width: 100%"
-                    @change="handleSearch"
-                    class="ancient-select"
-                  >
+                  <el-select v-model="searchForm.role" placeholder="角色筛选" clearable style="width: 100%"
+                    @change="handleSearch" class="ancient-select">
                     <el-option label="普通用户" value="USER"></el-option>
                     <el-option label="管理员" value="ADMIN"></el-option>
                   </el-select>
@@ -108,46 +82,21 @@
                 </el-col>
               </el-row>
             </div>
-            
+
             <!-- 用户列表表格 -->
             <div class="table-container">
-              <el-table
-                :data="paginatedUsers"
-                border
-                stripe
-                style="width: 100%; margin-top: 20px;"
-                v-loading="loading"
-                @sort-change="handleSortChange"
-                class="ancient-table"
-              >
-                <el-table-column 
-                  prop="id" 
-                  label="ID" 
-                  width="80"
-                  align="center"
-                  sortable
-                  :sort-orders="['ascending', 'descending']"
-                ></el-table-column>
-                <el-table-column 
-                  prop="username" 
-                  label="用户名" 
-                  min-width="150"
-                  sortable
-                  :sort-orders="['ascending', 'descending']"
-                ></el-table-column>
-                <el-table-column 
-                  prop="email" 
-                  label="邮箱" 
-                  min-width="200"
-                  sortable
-                  :sort-orders="['ascending', 'descending']"
-                ></el-table-column>
+              <el-table :data="paginatedUsers" border stripe style="width: 100%; margin-top: 20px;" v-loading="loading"
+                @sort-change="handleSortChange" class="ancient-table">
+                <el-table-column prop="id" label="ID" width="80" align="center" sortable
+                  :sort-orders="['ascending', 'descending']"></el-table-column>
+                <el-table-column prop="username" label="用户名" min-width="150" sortable
+                  :sort-orders="['ascending', 'descending']"></el-table-column>
+                <el-table-column prop="email" label="邮箱" min-width="200" sortable
+                  :sort-orders="['ascending', 'descending']"></el-table-column>
                 <el-table-column prop="role" label="角色" width="120" align="center">
                   <template slot-scope="scope">
-                    <div 
-                      class="role-tag"
-                      :class="{'admin-role': scope.row.role === 'ADMIN', 'user-role': scope.row.role === 'USER'}"
-                    >
+                    <div class="role-tag"
+                      :class="{ 'admin-role': scope.row.role === 'ADMIN', 'user-role': scope.row.role === 'USER' }">
                       {{ scope.row.role === 'ADMIN' ? '管理员' : '普通用户' }}
                     </div>
                   </template>
@@ -158,22 +107,14 @@
                       <span :class="{ 'warning': scope.row.borrowedCount >= scope.row.maxBorrowCount }">
                         {{ scope.row.borrowedCount }}/{{ scope.row.maxBorrowCount }}
                       </span>
-                      <el-progress 
-                        :percentage="getBorrowPercentage(scope.row)" 
-                        :stroke-width="10"
+                      <el-progress :percentage="getBorrowPercentage(scope.row)" :stroke-width="10"
                         :color="scope.row.borrowedCount >= scope.row.maxBorrowCount ? '#f56c6c' : '#67c23a'"
-                        style="margin-top: 5px;"
-                      ></el-progress>
+                        style="margin-top: 5px;"></el-progress>
                     </div>
                   </template>
                 </el-table-column>
-                <el-table-column 
-                  prop="createdAt" 
-                  label="注册时间" 
-                  width="180"
-                  sortable
-                  :sort-orders="['ascending', 'descending']"
-                >
+                <el-table-column prop="createdAt" label="注册时间" width="180" sortable
+                  :sort-orders="['ascending', 'descending']">
                   <template slot-scope="scope">
                     {{ formatDate(scope.row.createdAt) }}
                   </template>
@@ -181,64 +122,40 @@
                 <el-table-column label="操作" width="280" fixed="right" align="center">
                   <template slot-scope="scope">
                     <div class="action-buttons-container">
-                      <el-button
-                        size="small"
-                        type="primary"
-                        @click="handleViewDetail(scope.row)"
-                        class="action-btn detail-btn"
-                      >
+                      <el-button size="small" type="primary" @click="handleViewDetail(scope.row)"
+                        class="action-btn detail-btn">
                         详情
                       </el-button>
-                      <el-button
-                        size="small"
-                        type="warning"
-                        @click="handleEditUser(scope.row)"
-                        class="action-btn edit-btn"
-                      >
+                      <el-button size="small" type="warning" @click="handleEditUser(scope.row)"
+                        class="action-btn edit-btn">
                         编辑
                       </el-button>
-                      <el-button
-                        size="small"
-                        type="danger"
-                        @click="handleDeleteUser(scope.row)"
-                        :disabled="scope.row.id === user.id"
-                        class="action-btn delete-btn"
-                      >
+                      <el-button size="small" type="danger" @click="handleDeleteUser(scope.row)"
+                        class="action-btn delete-btn">
                         删除
+                      
                       </el-button>
                     </div>
                   </template>
                 </el-table-column>
               </el-table>
             </div>
-            
+
             <!-- 分页组件 -->
             <div class="pagination">
-              <el-pagination
-                @size-change="handleSizeChange"
-                @current-change="handleCurrentChange"
-                :current-page="pagination.page"
-                :page-sizes="[10, 20, 50, 100]"
-                :page-size="pagination.size"
-                layout="total, sizes, prev, pager, next, jumper"
-                :total="filteredUsers.length"
-                :background="true"
-                class="ancient-pagination"
-              >
+              <el-pagination @size-change="handleSizeChange" @current-change="handleCurrentChange"
+                :current-page="pagination.page" :page-sizes="[10, 20, 50, 100]" :page-size="pagination.size"
+                layout="total, sizes, prev, pager, next, jumper" :total="filteredUsers.length" :background="true"
+                class="ancient-pagination">
               </el-pagination>
             </div>
           </div>
         </el-main>
       </el-container>
     </el-container>
-    
+
     <!-- 用户详情对话框 -->
-    <el-dialog
-      title="用户详情"
-      :visible.sync="detailDialogVisible"
-      width="700px"
-      class="ancient-dialog"
-    >
+    <el-dialog title="用户详情" :visible.sync="detailDialogVisible" width="700px" class="ancient-dialog">
       <div v-if="selectedUser" class="user-detail">
         <el-tabs v-model="detailActiveTab" class="ancient-tabs">
           <el-tab-pane label="基本信息" name="info">
@@ -247,10 +164,8 @@
               <el-descriptions-item label="用户名">{{ selectedUser.username }}</el-descriptions-item>
               <el-descriptions-item label="邮箱">{{ selectedUser.email }}</el-descriptions-item>
               <el-descriptions-item label="角色">
-                <div 
-                  class="role-tag"
-                  :class="{'admin-role': selectedUser.role === 'ADMIN', 'user-role': selectedUser.role === 'USER'}"
-                >
+                <div class="role-tag"
+                  :class="{ 'admin-role': selectedUser.role === 'ADMIN', 'user-role': selectedUser.role === 'USER' }">
                   {{ selectedUser.role === 'ADMIN' ? '管理员' : '普通用户' }}
                 </div>
               </el-descriptions-item>
@@ -260,17 +175,11 @@
               <el-descriptions-item label="更新时间">{{ formatDate(selectedUser.updatedAt) }}</el-descriptions-item>
             </el-descriptions>
           </el-tab-pane>
-          
+
           <el-tab-pane label="借阅记录" name="borrow">
             <div v-if="selectedUser.borrowRecords && selectedUser.borrowRecords.length > 0">
-              <el-table
-                :data="selectedUser.borrowRecords"
-                border
-                stripe
-                style="width: 100%;"
-                size="small"
-                class="ancient-table"
-              >
+              <el-table :data="selectedUser.borrowRecords" border stripe style="width: 100%;" size="small"
+                class="ancient-table">
                 <el-table-column prop="bookTitle" label="图书名称" min-width="150"></el-table-column>
                 <el-table-column prop="borrowDate" label="借阅日期" width="120">
                   <template slot-scope="scope">
@@ -306,70 +215,42 @@
         <el-button @click="detailDialogVisible = false" class="cancel-btn">关闭</el-button>
       </div>
     </el-dialog>
-    
+
     <!-- 编辑用户对话框 -->
-    <el-dialog
-      :title="editDialogTitle"
-      :visible.sync="editDialogVisible"
-      width="500px"
-      @close="handleEditDialogClose"
-      class="ancient-dialog"
-    >
-      <el-form 
-        :model="editForm" 
-        :rules="editRules" 
-        ref="editFormRef" 
-        label-width="100px"
-        class="ancient-form"
-      >
+    <el-dialog :title="editDialogTitle" :visible.sync="editDialogVisible" width="500px" @close="handleEditDialogClose"
+      class="ancient-dialog">
+      <el-form :model="editForm" :rules="editRules" ref="editFormRef" label-width="100px" class="ancient-form">
         <el-form-item label="用户名" prop="username">
-          <el-input 
-            v-model="editForm.username" 
-            placeholder="请输入用户名"
-            :disabled="isEditMode"
-            class="ancient-input"
-          ></el-input>
+          <el-input v-model="editForm.username" placeholder="请输入用户名" :disabled="isEditMode"
+            class="ancient-input"></el-input>
         </el-form-item>
-        
+
         <el-form-item label="邮箱" prop="email">
-          <el-input 
-            v-model="editForm.email" 
-            placeholder="请输入邮箱"
-            class="ancient-input"
-          ></el-input>
+          <el-input v-model="editForm.email" placeholder="请输入邮箱" class="ancient-input"></el-input>
         </el-form-item>
-        
+
         <el-form-item v-if="!isEditMode" label="密码" prop="password">
-          <el-input 
-            v-model="editForm.password" 
-            type="password"
-            placeholder="请输入密码"
-            class="ancient-input"
-          ></el-input>
+          <el-input v-model="editForm.password" type="password" placeholder="请输入密码" class="ancient-input"></el-input>
         </el-form-item>
-        
+
         <el-form-item label="角色" prop="role">
           <el-select v-model="editForm.role" placeholder="请选择角色" class="ancient-select" style="width: 100%;">
             <el-option label="普通用户" value="USER"></el-option>
             <el-option label="管理员" value="ADMIN"></el-option>
           </el-select>
         </el-form-item>
-        
+
         <el-form-item label="最大借阅数" prop="maxBorrowCount">
-          <el-input-number
-              v-model="editForm.maxBorrowCount"
-              :min="selectedUser ? selectedUser.borrowedCount : 0"
-              :max="getMaxBorrowLimitByRole(editForm.role)"
-              controls-position="right"
-              class="ancient-input-number"
-          ></el-input-number>
+          <el-input-number v-model="editForm.maxBorrowCount" :min="selectedUser ? selectedUser.borrowedCount : 0"
+            :max="getMaxBorrowLimitByRole(editForm.role)" controls-position="right"
+            class="ancient-input-number"></el-input-number>
           <span class="form-tip">
-              {{ editForm.role === 'ADMIN' ? '管理员最多可借50本' : '普通用户最多可借20本' }}
-              (当前借阅数：{{ selectedUser ? selectedUser.borrowedCount : 0 }})
+            {{ editForm.role === 'ADMIN' ? '管理员最多可借50本' : '普通用户最多可借20本' }}
+            (当前借阅数：{{ selectedUser ? selectedUser.borrowedCount : 0 }})
           </span>
         </el-form-item>
       </el-form>
-      
+
       <div slot="footer" class="dialog-footer ancient-dialog-footer">
         <el-button @click="editDialogVisible = false" class="cancel-btn">取消</el-button>
         <el-button type="primary" @click="submitEditForm" :loading="editing" class="confirm-btn">
@@ -382,6 +263,7 @@
 
 <script>
 import { userApi } from '@/api/user'
+import { borrowApi } from '@/api/borrow'
 
 export default {
   name: 'UserManagement',
@@ -389,35 +271,35 @@ export default {
     return {
       // 用户信息
       user: JSON.parse(localStorage.getItem('user') || '{}'),
-      
+
       // 搜索表单
       searchForm: {
         username: '',
         email: '',
         role: ''
       },
-      
+
       // 排序
       sortField: '',
       sortOrder: '',
-      
+
       // 用户列表数据
       userList: [],
       loading: false,
       allUsers: [],
-      
+
       // 分页
       pagination: {
         page: 1,
         size: 10,
         total: 0
       },
-      
+
       // 详情对话框
       detailDialogVisible: false,
       selectedUser: null,
       detailActiveTab: 'info',
-      
+
       // 编辑/添加对话框
       editDialogVisible: false,
       isEditMode: false,
@@ -433,7 +315,7 @@ export default {
       editRules: {
         username: [
           { required: true, message: '请输入用户名', trigger: 'blur' },
-          { min: 3, max: 20, message: '用户名长度在3-20个字符之间', trigger: 'blur' }
+          { min: 1, max: 20, message: '用户名长度在1-20个字符之间', trigger: 'blur' }
         ],
         email: [
           { required: true, message: '请输入邮箱', trigger: 'blur' },
@@ -448,29 +330,29 @@ export default {
         ],
         maxBorrowCount: [
           { required: true, message: '请输入最大借阅数量', trigger: 'blur' },
-          { 
-              type: 'number', 
-              min: 1, 
-              message: '最大借阅数量必须大于0', 
-              trigger: 'blur' 
+          {
+            type: 'number',
+            min: 1,
+            message: '最大借阅数量必须大于0',
+            trigger: 'blur'
           },
           {
-              validator: (rule, value, callback) => {
-                  if (this.editForm.role === 'ADMIN') {
-                      if (value > 50) {
-                          callback(new Error('管理员最大借阅数不能超过50本'))
-                      } else {
-                          callback()
-                      }
-                  } else {
-                      if (value > 20) {
-                          callback(new Error('普通用户最大借阅数不能超过20本'))
-                      } else {
-                          callback()
-                      }
-                  }
-              },
-              trigger: 'blur'
+            validator: (rule, value, callback) => {
+              if (this.editForm.role === 'ADMIN') {
+                if (value > 50) {
+                  callback(new Error('管理员最大借阅数不能超过50本'))
+                } else {
+                  callback()
+                }
+              } else {
+                if (value > 20) {
+                  callback(new Error('普通用户最大借阅数不能超过20本'))
+                } else {
+                  callback()
+                }
+              }
+            },
+            trigger: 'blur'
           }
         ]
       },
@@ -481,35 +363,35 @@ export default {
     // 过滤后的用户数据
     filteredUsers() {
       let result = [...this.allUsers]
-      
+
       // 应用搜索过滤
       if (this.searchForm.username) {
-        result = result.filter(user => 
+        result = result.filter(user =>
           user.username.toLowerCase().includes(this.searchForm.username.toLowerCase())
         )
       }
-      
+
       if (this.searchForm.email) {
-        result = result.filter(user => 
+        result = result.filter(user =>
           user.email.toLowerCase().includes(this.searchForm.email.toLowerCase())
         )
       }
-      
+
       if (this.searchForm.role) {
         result = result.filter(user => user.role === this.searchForm.role)
       }
-      
+
       // 应用排序
       if (this.sortField && this.sortOrder) {
         result.sort((a, b) => {
           let aValue = a[this.sortField]
           let bValue = b[this.sortField]
-          
+
           if (typeof aValue === 'string') {
             aValue = aValue.toLowerCase()
             bValue = bValue.toLowerCase()
           }
-          
+
           if (this.sortOrder === 'asc') {
             return aValue < bValue ? -1 : aValue > bValue ? 1 : 0
           } else {
@@ -517,10 +399,10 @@ export default {
           }
         })
       }
-      
+
       return result
     },
-    
+
     // 当前页的数据
     paginatedUsers() {
       const start = (this.pagination.page - 1) * this.pagination.size
@@ -530,12 +412,12 @@ export default {
   },
   watch: {
     'editForm.role': {
-        handler(newRole, oldRole) {
+      handler(newRole, oldRole) {
         if (newRole !== oldRole) {
-            this.adjustMaxBorrowCountByRole(newRole)
+          this.adjustMaxBorrowCountByRole(newRole)
         }
-        },
-        immediate: false
+      },
+      immediate: false
     }
   },
   mounted() {
@@ -544,7 +426,7 @@ export default {
       this.$router.push('/admin/login')
       return
     }
-    
+
     // 加载用户列表
     this.loadUsers()
   },
@@ -557,33 +439,33 @@ export default {
         this.$message.info('管理员个人资料功能开发中')
       }
     },
-    
+
     // 获取角色对应的最大借阅限制
     getMaxBorrowLimitByRole(role) {
-        return role === 'ADMIN' ? 50 : 20;
+      return role === 'ADMIN' ? 50 : 20;
     },
-    
+
     // 获取借阅百分比
     getBorrowPercentage(user) {
       const percentage = (user.borrowedCount / user.maxBorrowCount) * 100
       return Math.round(Math.min(percentage, 100))
     },
-    
+
     adjustMaxBorrowCountByRole(newRole) {
       if (!newRole) return
-      
+
       const currentBorrowed = this.selectedUser ? this.selectedUser.borrowedCount : 0
       const maxLimit = this.getMaxBorrowLimitByRole(newRole)
-      
+
       if (newRole === 'ADMIN') {
-          const defaultMax = Math.max(10, currentBorrowed)
-          this.editForm.maxBorrowCount = Math.min(defaultMax, maxLimit)
+        const defaultMax = Math.max(10, currentBorrowed)
+        this.editForm.maxBorrowCount = Math.min(defaultMax, maxLimit)
       } else {
-          const defaultMax = Math.max(5, currentBorrowed)
-          this.editForm.maxBorrowCount = Math.min(defaultMax, maxLimit)
+        const defaultMax = Math.max(5, currentBorrowed)
+        this.editForm.maxBorrowCount = Math.min(defaultMax, maxLimit)
       }
     },
-    
+
     // 加载用户列表
     async loadUsers() {
       this.loading = true
@@ -593,13 +475,13 @@ export default {
           size: 1000,
           ...this.searchForm
         }
-        
-        const res = await userApi.getUsers(params)
-        
+        var res = await userApi.getUsers(params)
+        res = res.data
+        console.log(res)
         if (res.code === 200) {
-          this.allUsers = res.data.list
-          this.pagination.total = res.data.total
-          
+          this.allUsers = res.data
+          this.pagination.total = res.data.length
+
           if (this.pagination.page > Math.ceil(res.data.total / this.pagination.size)) {
             this.pagination.page = 1
           }
@@ -617,13 +499,13 @@ export default {
         this.loading = false
       }
     },
-    
+
     // 搜索
     handleSearch() {
       this.pagination.page = 1
       this.loadUsers()
     },
-    
+
     // 重置搜索
     resetSearch() {
       this.searchForm = {
@@ -636,28 +518,28 @@ export default {
       this.pagination.page = 1
       this.loadUsers()
     },
-    
+
     // 分页处理
     handleSizeChange(size) {
       this.pagination.size = size
       this.pagination.page = 1
     },
-    
+
     handleCurrentChange(page) {
       this.pagination.page = page
     },
-    
+
     // 排序处理
     handleSortChange({ prop, order }) {
       this.sortField = prop
       this.sortOrder = order === 'ascending' ? 'asc' : order === 'descending' ? 'desc' : ''
     },
-    
+
     // 查看用户详情
     async handleViewDetail(user) {
       try {
-        const res = await userApi.getUserDetail(user.id)
-        
+        var res = await userApi.getUserDetail(user.id)
+        res = res.data
         if (res.code === 200) {
           this.selectedUser = res.data
           this.detailActiveTab = 'info'
@@ -670,78 +552,78 @@ export default {
         this.$message.error('获取详情失败，请稍后重试')
       }
     },
-    
+
     // 编辑用户
     handleEditUser(user) {
       this.isEditMode = true
       this.editDialogTitle = '编辑用户'
-      
+
       this.editForm = {
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          password: '',
-          role: user.role,
-          maxBorrowCount: user.maxBorrowCount
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        password: '',
+        role: user.role,
+        maxBorrowCount: user.maxBorrowCount
       }
-      
+
       this.selectedUser = user
-      
+
       this.$nextTick(() => {
-          this.adjustMaxBorrowCountByRole(user.role)
+        this.adjustMaxBorrowCountByRole(user.role)
       })
-      
+
       this.editDialogVisible = true
     },
-    
+
     // 添加用户
     handleAddUser() {
       this.isEditMode = false
       this.editDialogTitle = '添加用户'
       this.selectedUser = null
-      
+
       this.editForm = {
-          id: '',
-          username: '',
-          email: '',
-          password: '',
-          role: 'USER',
-          maxBorrowCount: 5
+        id: '',
+        username: '',
+        email: '',
+        password: '',
+        role: 'USER',
+        maxBorrowCount: 5
       }
-      
+
       this.editDialogVisible = true
-      
+
       this.$nextTick(() => {
-          this.adjustMaxBorrowCountByRole('USER')
+        this.adjustMaxBorrowCountByRole('USER')
       })
     },
-    
+
     // 编辑对话框关闭
     handleEditDialogClose() {
       if (this.$refs.editFormRef) {
         this.$refs.editFormRef.clearValidate()
       }
     },
-    
+
     // 提交编辑/添加表单
     submitEditForm() {
       this.$refs.editFormRef.validate(async (valid) => {
         if (!valid) return
-        
+
         this.editing = true
-        
+
         try {
           if (this.isEditMode) {
             // 编辑用户
             const updateData = {
               email: this.editForm.email,
               role: this.editForm.role,
-              password:this.editForm.role,
+              password: this.editForm.role,
               maxBorrowCount: this.editForm.maxBorrowCount
             }
-            
-            const res = await userApi.updateUser(this.editForm.id, updateData)
-            
+
+            var res = await userApi.updateUser(this.editForm.id, updateData)
+            res = res.data
             if (res.code === 200) {
               this.$message.success('用户更新成功')
               this.editDialogVisible = false
@@ -758,9 +640,8 @@ export default {
               role: this.editForm.role,
               maxBorrowCount: this.editForm.maxBorrowCount
             }
-            
-            const res = await userApi.addUser(addData)
-            
+            var res = await userApi.addUser(addData)
+            res = res.data
             if (res.code === 200) {
               this.$message.success('用户添加成功')
               this.editDialogVisible = false
@@ -770,21 +651,20 @@ export default {
             }
           }
         } catch (error) {
-          console.error('操作失败:', error)
           this.$message.error('操作失败，请稍后重试')
         } finally {
           this.editing = false
         }
       })
     },
-    
+
     // 工具函数
     formatDate(dateString) {
       if (!dateString) return '-'
       const date = new Date(dateString)
       return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     },
-    
+
     getStatusTagType(status) {
       switch (status) {
         case 'BORROWED': return 'primary'
@@ -793,7 +673,7 @@ export default {
         default: return 'info'
       }
     },
-    
+
     getStatusText(status) {
       switch (status) {
         case 'BORROWED': return '借阅中'
@@ -804,60 +684,112 @@ export default {
     },
 
     // 删除用户
-    async handleDeleteUser(user) {
-      if (user.id === this.user.id) {
-        this.$message.error('不能删除当前登录的用户')
-        return
+
+handleDeleteUser(userRow) {
+   // 检查当前借阅数量
+   const borrowedCount = userRow.borrowedCount || 0
+  
+  if (borrowedCount > 0) {
+    // 如果有借阅记录，尝试获取详细的借阅状态
+    this.$confirm(
+      `用户"${userRow.username}"还有${borrowedCount}本图书未归还<br/>请先归还所有图书再删除用户`,
+      '无法删除用户',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+        dangerouslyUseHTMLString: true
+      }
+    ).then(() => {
+      // 可以在这里调用API获取用户的具体借阅记录
+      this.loadUserBorrowDetails(userRow.id)
+    }).catch(() => {})
+    
+    return
+  }
+  const isSelf = userRow.id === this.user.id
+  
+  const confirmMessage = isSelf 
+    ? '⚠️ 警告：您正在尝试删除自己的账户！\n\n删除后您将无法登录系统。\n确定要继续吗？'
+    : `确定要删除用户 "${userRow.username}" 吗？`
+    
+  const confirmType = isSelf ? 'warning' : 'warning'
+  
+  this.$confirm(confirmMessage, '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: confirmType,
+    customClass: 'ancient-confirm-dialog',
+    dangerouslyUseHTMLString: isSelf // 允许HTML格式的提示
+  }).then(async () => {
+    try {
+      var res = await userApi.deleteUser(userRow.id)
+      res = res.data
+      
+      if (res.code === 200) {
+        this.$message.success('删除成功')
+        
+        if (isSelf) {
+          // 如果是删除自己，跳转到登录页
+          this.$message.info('您的账户已被删除，正在跳转到登录页...')
+          setTimeout(() => {
+            localStorage.removeItem('user')
+            this.$router.push('/admin/login')
+          }, 1500)
+        } else {
+          // 刷新用户列表
+          this.loadUsers()
+        }
+      } else {
+        this.$message.error(res.message)
+      }
+    } catch (error) {
+      console.error('删除用户失败:', error)
+      this.$message.error('删除失败，请稍后重试')
+    }
+  }).catch(() => {})
+},
+
+// 新增方法：获取用户的借阅详情
+async loadUserBorrowDetails(userId) {
+  try {
+    const params = {
+      page: 1,
+      size: 100,
+      userId: userId,
+      status: 'BORROWED'
+    }
+    
+    const response = await borrowApi.getBorrowRecords(params)
+    const res = response.data || response
+    
+    if (res.code === 200 && res.data) {
+      let records = []
+      if (Array.isArray(res.data)) {
+        records = res.data
+      } else if (Array.isArray(res.data.list)) {
+        records = res.data.list
       }
       
-      try {
-        const res = await userApi.getUserDetail(user.id)
-        
-        if (res.code !== 200) {
-          this.$message.error('获取用户信息失败')
-          return
-        }
-        
-        const userDetail = res.data
-        const unreturnedCount = userDetail.borrowRecords ? 
-          userDetail.borrowRecords.filter(record => 
-            !record.returnDate && (record.status === 'BORROWED' || record.status === 'OVERDUE')
-          ).length : 0
-        
-        let confirmMessage = `确定要删除用户 "${user.username}" 吗？此操作不可恢复。`
-        
-        if (unreturnedCount > 0) {
-          confirmMessage = `该用户还有 ${unreturnedCount} 本未归还的图书。删除用户将同时删除所有借阅记录，并自动归还相关图书。\n${confirmMessage}`
-        }
-        
-        this.$confirm(confirmMessage, '确认删除', {
-          confirmButtonText: '确定删除',
-          cancelButtonText: '取消',
-          type: 'warning',
-          confirmButtonClass: 'el-button--danger',
-          dangerouslyUseHTMLString: true
-        }).then(async () => {
-          try {
-            const deleteRes = await userApi.deleteUser(user.id)
-            
-            if (deleteRes.code === 200) {
-              this.$message.success(deleteRes.message)
-              this.loadUsers()
-            } else {
-              this.$message.error(deleteRes.message)
-            }
-          } catch (error) {
-            console.error('删除用户失败:', error)
-            this.$message.error('删除失败，请稍后重试')
-          }
-        }).catch(() => {
-          // 用户取消删除
-        })
-      } catch (error) {
-        console.error('获取用户详情失败:', error)
-        this.$message.error('获取用户信息失败，无法执行删除操作')
+      if (records.length > 0) {
+        // 显示借阅详情
+        this.showBorrowDetailsDialog(userId, records)
       }
-    },
+    }
+  } catch (error) {
+    console.error('获取用户借阅详情失败:', error)
+  }
+},
+
+// 显示借阅详情对话框
+showBorrowDetailsDialog(userId, records) {
+  // 这里可以弹出一个对话框显示用户的借阅记录
+  // 或者跳转到借阅管理页面
+  this.$message.info(`用户还有${records.length}本未还图书，请先处理`)
+  
+  // 示例：跳转到借阅管理页面
+  // this.$router.push({ path: '/admin/borrow', query: { userId: userId } })
+},
 
     // 退出登录
     logout() {
@@ -873,7 +805,12 @@ export default {
 @import '@/assets/ancient-form.css';
 
 /* 通用古籍字体 - 只用于标题 */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: "STKaiti", "KaiTi", serif;
 }
 
@@ -1107,7 +1044,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* 按钮样式 - 使用系统默认字体确保清晰度 */
-.search-btn, .reset-btn {
+.search-btn,
+.reset-btn {
   padding: 10px 20px !important;
   border-radius: 20px !important;
   font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
@@ -1234,7 +1172,8 @@ h1, h2, h3, h4, h5, h6 {
 
 /* 编辑按钮 */
 .edit-btn {
-  background: #a7874b !important;  /* 使用之前的棕色系 */
+  background: #a7874b !important;
+  /* 使用之前的棕色系 */
   border: 1px solid #8b7355 !important;
   color: white !important;
 }
@@ -1259,6 +1198,7 @@ h1, h2, h3, h4, h5, h6 {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(204, 119, 119, 0.3);
 }
+
 /* 角色标签样式 */
 .role-tag {
   display: inline-block;
@@ -1274,21 +1214,24 @@ h1, h2, h3, h4, h5, h6 {
 
 /* 管理员角色样式 - 使用更符合古籍风格的 */
 .admin-role {
-  background: #f5eadb; 
-  color: #a17b4a; 
+  background: #f5eadb;
+  color: #a17b4a;
   font-weight: 600;
   font-size: 12px;
-  border: 1px solid #ebd5b7; 
+  border: 1px solid #ebd5b7;
   box-shadow: 0 2px 4px rgba(232, 164, 164, 0.3);
 }
 
 /* 普通用户角色样式 - 更柔和 */
 .user-role {
-  background: #fffcf9; /* 米色渐变 */
-  color: #5b4636; /* 深棕色文字 */
+  background: #fffcf9;
+  /* 米色渐变 */
+  color: #5b4636;
+  /* 深棕色文字 */
   font-weight: 500;
   font-size: 12px;
-  border: 1px solid #edcfa4; /* 浅金色边框 */
+  border: 1px solid #edcfa4;
+  /* 浅金色边框 */
   box-shadow: 0 1px 3px rgba(155, 135, 110, 0.15);
 }
 
@@ -1314,6 +1257,7 @@ h1, h2, h3, h4, h5, h6 {
 .ancient-descriptions .role-tag {
   margin: 0;
 }
+
 /* 分页 - 与BookManagement完全一致 */
 .pagination {
   background: rgba(255, 255, 255, 0.8);
@@ -1391,9 +1335,10 @@ h1, h2, h3, h4, h5, h6 {
   border-color: #d4b483 !important;
   color: #5b4636 !important;
 }
-.pagination >>> .el-pagination.is-background .btn-prev,
-.pagination >>> .el-pagination.is-background .btn-next,
-.pagination >>> .el-pagination.is-background .el-pager li {
+
+.pagination>>>.el-pagination.is-background .btn-prev,
+.pagination>>>.el-pagination.is-background .btn-next,
+.pagination>>>.el-pagination.is-background .el-pager li {
   background: #ffffff !important;
   border: 1px solid #e8d4b8 !important;
   color: #5b4636 !important;
@@ -1403,9 +1348,9 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* 悬停效果 */
-.pagination >>> .el-pagination.is-background .btn-prev:hover,
-.pagination >>> .el-pagination.is-background .btn-next:hover,
-.pagination >>> .el-pagination.is-background .el-pager li:hover {
+.pagination>>>.el-pagination.is-background .btn-prev:hover,
+.pagination>>>.el-pagination.is-background .btn-next:hover,
+.pagination>>>.el-pagination.is-background .el-pager li:hover {
   background: #f8f1e7 !important;
   border-color: #ddc29b !important;
   color: #5b4636 !important;
@@ -1413,7 +1358,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* 当前选中页数 */
-.pagination >>> .el-pagination.is-background .el-pager li.active {
+.pagination>>>.el-pagination.is-background .el-pager li.active {
   background: #b49877 !important;
   border-color: #8b7355 !important;
   color: white !important;
@@ -1423,8 +1368,8 @@ h1, h2, h3, h4, h5, h6 {
 
 
 /* 禁用按钮的样式 */
-.pagination >>> .el-pagination.is-background .btn-prev.disabled,
-.pagination >>> .el-pagination.is-background .btn-next.disabled {
+.pagination>>>.el-pagination.is-background .btn-prev.disabled,
+.pagination>>>.el-pagination.is-background .btn-next.disabled {
   background: #f5f0e6 !important;
   border-color: #e8d4b8 !important;
   color: #c0c4cc !important;
@@ -1432,14 +1377,14 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* 分页文字信息 */
-.pagination >>> .el-pagination__total,
-.pagination >>> .el-pagination__jump {
+.pagination>>>.el-pagination__total,
+.pagination>>>.el-pagination__jump {
   color: #5b4636 !important;
   font-family: "Microsoft YaHei", "Segoe UI", sans-serif !important;
 }
 
 /* 页码输入框 */
-.pagination >>> .el-pagination__editor.el-input .el-input__inner {
+.pagination>>>.el-pagination__editor.el-input .el-input__inner {
   border: 1px solid #e8d4b8 !important;
   background: #ffffff !important;
   color: #5b4636 !important;
@@ -1574,54 +1519,54 @@ h1, h2, h3, h4, h5, h6 {
   .el-aside {
     width: 60px !important;
   }
-  
+
   .logo h3 {
     display: none;
   }
-  
+
   .logo-img {
     margin-right: 0;
   }
-  
+
   .el-menu-item span {
     display: none;
   }
-  
+
   .el-menu-item i {
     margin-right: 0;
   }
-  
+
   .page-header {
     flex-direction: column;
     gap: 10px;
     align-items: flex-start;
   }
-  
+
   .button-group {
     flex-wrap: wrap;
     justify-content: flex-start;
   }
-  
+
   .search-bar .el-col {
     margin-bottom: 10px;
   }
-  
+
   .action-btn {
     padding: 6px 12px !important;
     font-size: 12px;
     min-width: 60px !important;
   }
-  
+
   .role-tag {
     padding: 5px 10px;
     font-size: 12px;
     min-width: 65px;
   }
-  
+
   .admin-role {
     font-size: 12px;
   }
-  
+
   .user-role {
     font-size: 11px;
   }
@@ -1631,45 +1576,45 @@ h1, h2, h3, h4, h5, h6 {
   .admin-header {
     padding: 0 10px;
   }
-  
+
   .admin-user-info .el-dropdown-link {
     padding: 6px 12px;
     font-size: 12px;
   }
-  
+
   .action-buttons-container {
     flex-wrap: wrap;
     gap: 8px;
     justify-content: center;
   }
-  
+
   .action-btn {
     padding: 5px 10px !important;
     font-size: 11px;
     min-width: 55px !important;
   }
-  
+
   .ancient-table th,
   .ancient-table td {
     padding: 8px 0 !important;
     font-size: 12px;
   }
-  
+
   .add-user-btn {
     padding: 8px 16px !important;
     font-size: 13px;
   }
-  
+
   .role-tag {
     padding: 4px 8px;
     font-size: 11px;
     min-width: 60px;
   }
-  
+
   .admin-role {
     font-size: 11px;
   }
-  
+
   .user-role {
     font-size: 10px;
   }

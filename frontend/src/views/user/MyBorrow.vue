@@ -144,15 +144,7 @@
           <!-- 借阅历史列表 -->
           <div class="history-list">
             <div class="search-filter ancient-filter">
-              <el-input
-                v-model="historyKeyword"
-                placeholder="搜索书名"
-                class="ancient-input"
-                style="width: 300px;"
-                @keyup.enter.native="loadHistory"
-              >
-                <el-button slot="append" icon="el-icon-search" @click="loadHistory" class="search-append-btn"></el-button>
-              </el-input>
+            
               
               <el-select
                 v-model="historyStatus"
@@ -284,6 +276,7 @@
 
 <script>
 import { borrowApi } from '@/api/borrow'
+import { bookApi } from '@/api/book'
 import BookDetail from '@/components/BookDetail.vue'
 
 export default {
@@ -405,32 +398,93 @@ export default {
     },
     
     // 加载当前借阅数据
-    async loadCurrentBorrows() {
-      this.currentLoading = true
-      try {
-        const params = {
-          page: 1,
-          size: 100,
-          userId: this.user.id
-        }
-        
-        const res = await borrowApi.getBorrowRecords(params)
-        
-        if (res.code === 200) {
-          this.currentBorrows = res.data.list.filter(record => 
-            record.status === 'BORROWED'
-          )
-          this.updateStats(res.data.list)
-        } else {
-          this.$message.error(res.message)
-        }
-      } catch (error) {
-        console.error('加载当前借阅失败:', error)
-        this.$message.error('加载失败，请稍后重试')
-      } finally {
-        this.currentLoading = false
+// 加载当前借阅数据（按需获取图书信息版本）
+async loadCurrentBorrows() {
+  this.currentLoading = true
+  try {
+    const params = {
+      page: 1,
+      size: 100,
+      userId: this.user.id
+    }
+    
+    // 调用 API
+    const response = await borrowApi.getBorrowRecords(params)
+    console.log('当前借阅响应:', response)
+    
+    // 简化处理：直接从响应中提取数据
+    let data = response
+    
+    // 如果 response 有 data 属性（axios 响应格式）
+    if (response && response.data) {
+      data = response.data
+    }
+    
+    console.log("处理后的数据:", data)
+    
+    // 现在 data 应该是 { code: 200, message: "成功", data: {...} }
+    if (data && data.code === 200) {
+      // 获取内层的 data
+      const innerData = data.data
+      
+      // 获取列表数据
+      let records = []
+      if (Array.isArray(innerData)) {
+        records = innerData
+      } else if (innerData && Array.isArray(innerData.list)) {
+        records = innerData.list
+      } else {
+        records = innerData || []
       }
-    },
+      
+      console.log("获取到的记录:", records)
+      
+      // 为每条记录获取图书信息
+      const recordsWithBooks = await Promise.all(
+        records.map(async record => {
+          try {
+            var bookResponse = await bookApi.getBookDetail(record.bookId)
+            const bookRes = bookResponse.data 
+            
+            if (bookRes.code === 200 && bookRes.data) {
+              return {
+                ...record,
+                bookTitle: bookRes.data.title || '未知图书',
+                bookInfo: bookRes.data
+              }
+            } else {
+              return {
+                ...record,
+                bookTitle: '图书信息获取失败',
+                bookInfo: null
+              }
+            }
+          } catch (error) {
+            console.error(`获取图书 ${record.bookId} 信息失败:`, error)
+            return {
+              ...record,
+              bookTitle: record.bookTitle || '未知图书',
+              bookInfo: null
+            }
+          }
+        })
+      )
+      
+      this.currentBorrows = recordsWithBooks.filter(record => 
+        record.status === 'BORROWED' || 
+        (record.status === 'BORROWED' && this.isOverdue(record.dueDate))
+      )
+      this.updateStats(records)
+    } else {
+      this.$message.error(data?.message || '加载失败')
+    }
+  } catch (error) {
+    console.error('加载当前借阅失败:', error)
+    this.$message.error('加载失败，请稍后重试')
+  } finally {
+    this.currentLoading = false
+  }
+},
     
     // 更新统计数据
     updateStats(records) {
@@ -452,37 +506,108 @@ export default {
     
     // 加载借阅历史
     async loadHistory() {
-      this.historyLoading = true
-      try {
-        const params = {
-          page: this.historyPagination.page,
-          size: this.historyPagination.size,
-          userId: this.user.id
-        }
-        
-        if (this.historyStatus) {
-          params.status = this.historyStatus
-        }
-        
-        if (this.historyKeyword.trim()) {
-          params.keyword = this.historyKeyword.trim()
-        }
-        
-        const res = await borrowApi.getBorrowRecords(params)
-        
-        if (res.code === 200) {
-          this.historyRecords = res.data.list
-          this.historyTotal = res.data.total
-        } else {
-          this.$message.error(res.message)
-        }
-      } catch (error) {
-        console.error('加载借阅历史失败:', error)
-        this.$message.error('加载失败，请稍后重试')
-      } finally {
-        this.historyLoading = false
+  this.historyLoading = true
+  try {
+    const params = {
+      page: this.historyPagination.page,
+      size: this.historyPagination.size,
+      userId: this.user.id
+    }
+    
+    if (this.historyStatus) {
+      params.status = this.historyStatus
+    }
+    
+    if (this.historyKeyword.trim()) {
+      params.keyword = this.historyKeyword.trim()
+    }
+    
+    // 调用 API
+    const response = await borrowApi.getBorrowRecords(params)
+    console.log('借阅历史响应:', response)
+    
+    // 处理响应结构
+    let res
+    const responseData = response.data || response
+    
+    // 处理不同的响应格式
+    if (responseData.data && responseData.data.code !== undefined) {
+      // 格式: { data: { code, message, data: {...} } }
+      res = responseData.data
+    } else if (responseData.code !== undefined) {
+      // 格式: { code, message, data: {...} }
+      res = responseData
+    } else {
+      // 其他格式，尝试直接使用
+      res = responseData
+    }
+    
+    if (res && res.code === 200) {
+      // 获取列表数据
+      let records = []
+      let total = 0
+      
+      if (Array.isArray(res.data)) {
+        // 如果 data 直接是数组
+        records = res.data
+        total = records.length
+      } else if (res.data && Array.isArray(res.data.list)) {
+        // 如果 data 中有 list 字段
+        records = res.data.list
+        total = res.data.total || records.length
+      } else {
+        // 其他格式
+        records = res.data || []
+        total = records.length
       }
-    },
+      
+      console.log('获取到的历史记录:', records)
+      
+      // 为每条记录获取图书信息
+      const recordsWithBooks = await Promise.all(
+        records.map(async record => {
+          try {
+            const bookResponse = await bookApi.getBookDetail(record.bookId)
+            const bookRes = bookResponse.data || bookResponse
+            
+            if (bookRes.code === 200 && bookRes.data) {
+              return {
+                ...record,
+                bookTitle: bookRes.data.title || '未知图书',
+                bookInfo: bookRes.data
+              }
+            } else {
+              // 如果API返回了图书信息但在bookTitle字段中
+              return {
+                ...record,
+                bookTitle: record.bookTitle || '图书信息获取失败',
+                bookInfo: null
+              }
+            }
+          } catch (error) {
+            console.error(`获取图书 ${record.bookId} 信息失败:`, error)
+            // 使用原有数据或默认值
+            return {
+              ...record,
+              bookTitle: record.bookTitle || '未知图书',
+              bookInfo: null
+            }
+          }
+        })
+      )
+      
+      this.historyRecords = recordsWithBooks
+      this.historyTotal = total
+    } else {
+      this.$message.error(res?.message || '加载失败')
+    }
+  } catch (error) {
+    console.error('加载借阅历史失败:', error)
+    this.$message.error('加载失败，请稍后重试')
+  } finally {
+    this.historyLoading = false
+  }
+},
     
     // 重置历史筛选
     resetHistoryFilter() {
@@ -522,8 +647,8 @@ export default {
       
       this.renewing = true
       try {
-        const res = await borrowApi.renewBook(this.recordToRenew.id)
-        
+        var res = await borrowApi.renewBook(this.recordToRenew.id)
+        res=res.data
         if (res.code === 200) {
           this.$message.success('续借成功')
           this.renewDialogVisible = false

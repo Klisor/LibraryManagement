@@ -20,7 +20,7 @@
           <el-dropdown @command="handleCommand">
             <span class="el-dropdown-link">
               <i class="el-icon-user"></i>
-              {{ user.username }}
+              {{ user.username || '用户' }}
               <i class="el-icon-arrow-down el-icon--right"></i>
             </span>
             <el-dropdown-menu slot="dropdown">
@@ -40,7 +40,7 @@
         <!-- 头像居中部分 -->
         <div class="avatar-center-section">
           <el-avatar :size="100" class="user-avatar">
-            {{ user.username.charAt(0) }}
+            {{ (user.username || 'U').charAt(0) }}
           </el-avatar>
 
           <div class="user-name-tag">
@@ -92,15 +92,10 @@
         <div class="section-header">
           <h3> 我的笔记</h3>
           <div class="section-actions">
-  <el-button 
-    type="warning"
-    icon="el-icon-plus" 
-    @click="showCreateNote"
-    class="custom-note-btn"
-  >
-    新建笔记
-  </el-button>
-</div>
+            <el-button type="warning" icon="el-icon-plus" @click="showCreateNote" class="custom-note-btn">
+              新建笔记
+            </el-button>
+          </div>
         </div>
 
         <!-- 笔记筛选 -->
@@ -128,7 +123,9 @@
 
           <div v-else-if="notes.length === 0" class="empty-container">
             <el-empty description="暂无笔记">
-              <el-button type="primary" @click="showCreateNote">创建第一篇笔记</el-button>
+              <el-button type="primary" @click="showCreateNote" class="ancient-primary-btn">
+                创建第一篇笔记
+              </el-button>
             </el-empty>
           </div>
 
@@ -176,25 +173,36 @@
     </div>
 
     <!-- 编辑资料对话框 -->
+    <!-- 修改编辑资料对话框，用户名完全禁用 -->
     <el-dialog title="编辑资料" :visible.sync="editProfileDialogVisible" width="500px">
       <el-form :model="profileForm" :rules="profileRules" ref="profileFormRef" label-width="100px">
-        <el-form-item label="用户名" prop="username">
-          <el-input v-model="profileForm.username" placeholder="请输入用户名"></el-input>
+        <!-- 用户名：所有用户都不可修改 -->
+        <el-form-item label="用户名">
+          <el-input v-model="user.username" placeholder="用户名" disabled></el-input>
+          <div class="form-tip">用户名不可修改</div>
         </el-form-item>
 
+        <!-- 邮箱：所有用户都可以修改 -->
         <el-form-item label="邮箱" prop="email">
           <el-input v-model="profileForm.email" placeholder="请输入邮箱"></el-input>
         </el-form-item>
 
+        <!-- 当前借阅数：只读 -->
         <el-form-item label="当前借阅">
           <el-input-number v-model="user.borrowedCount" disabled controls-position="right"></el-input-number>
         </el-form-item>
 
-        <!-- 最大借阅数改为只读显示 -->
+        <!-- 最大借阅数：普通用户只读，管理员可编辑 -->
         <el-form-item label="最大借阅">
-          <el-input-number v-model="user.maxBorrowCount" disabled controls-position="right"></el-input-number>
-          <span class="form-tip">{{ user.role === 'ADMIN' ? '管理员' : '普通用户' }}最多可借{{ user.role === 'ADMIN' ? 50 : 20
-          }}本</span>
+          <div v-if="user.role !== 'ADMIN'">
+            <el-input-number v-model="user.maxBorrowCount" disabled controls-position="right"></el-input-number>
+            <span class="form-tip">普通用户最大借阅数为5本</span>
+          </div>
+          <div v-else>
+            <el-input-number v-model="profileForm.maxBorrowCount" :min="user.borrowedCount" :max="50"
+              controls-position="right"></el-input-number>
+            <span class="form-tip">管理员最大可借阅50本，且不能小于当前借阅数</span>
+          </div>
         </el-form-item>
       </el-form>
 
@@ -301,31 +309,25 @@
 </template>
 
 <script>
+import { userApi } from '@/api/user'
 import { noteApi } from '@/api/note'
 import { bookApi } from '@/api/book'
-import { userApi } from '@/api/user'
 import '@/assets/ancient-form.css'
 import { BOOK_CATEGORIES } from '@/constants/bookCategories'
-
 
 export default {
   name: 'Personal',
   data() {
     return {
       // 用户信息
-      user: JSON.parse(localStorage.getItem('user') || '{}'),
+      user: {},
 
       // 个人信息编辑
       editProfileDialogVisible: false,
       profileForm: {
-        username: '',
         email: ''
       },
       profileRules: {
-        username: [
-          { required: true, message: '请输入用户名', trigger: 'blur' },
-          { min: 3, max: 20, message: '用户名长度在3-20个字符之间', trigger: 'blur' }
-        ],
         email: [
           { required: true, message: '请输入邮箱', trigger: 'blur' },
           { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' }
@@ -344,12 +346,8 @@ export default {
         size: 12
       },
       noteFilter: {
-        keyword: '',
-        bookId: ''
+        keyword: ''
       },
-
-      // 用户借阅过的书籍（用于筛选）
-      userBooks: [],
 
       // 笔记对话框
       noteDialogVisible: false,
@@ -381,172 +379,247 @@ export default {
       deletingNote: false,
 
       // 所有可用书籍（用于关联选择）
-      availableBooks: []
+      availableBooks: [],
+
+      // 页面状态
+      activeNav: 'personal',
+      loadingUserInfo: false,
+      pageLoading: true
     }
   },
-  // computed: {
-  //   // 当前用户可借阅的书籍
-  //   userMaxBorrow() {
-  //     return this.user.role === 'ADMIN' ? 50 : 20
-  //   }
-  // },
+  computed: {
+    // 当前用户可借阅的最大数量
+    userMaxBorrow() {
+      if (!this.user) return 5
+      return this.user.role === 'ADMIN' ? 20 : 5
+    },
+
+    // 用户借阅统计
+    borrowStats() {
+      if (!this.user) return { borrowed: 0, remaining: 5 }
+      const borrowed = this.user.borrowedCount || 0
+      const max = this.userMaxBorrow
+      return {
+        borrowed,
+        remaining: Math.max(0, max - borrowed)
+      }
+    }
+  },
   mounted() {
-    // 检查用户是否登录
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
-    if (!user.id) {
-      this.$router.push('/user/login')
-      return
-    }
-
-    // 检查用户权限 - 允许普通用户和管理员访问
-    if (user.role !== 'USER' && user.role !== 'ADMIN') {
-      this.$message.warning('请以用户或管理员身份登录')
-      this.$router.push('/user/login')
-      return
-    }
-
-    // 更新 data 中的 user 对象
-    this.user = user
-
-    // 加载数据
-    this.loadUserInfo()
-    this.loadNotes()
-    this.loadUserBooks()
-    this.loadAvailableBooks()
+    this.initPage()
   },
   methods: {
+    // 初始化页面
+    async initPage() {
+      this.pageLoading = true
 
-    handleNavSelect(index) {
-      this.activeNav = index
-      // 根据不同的index跳转到对应的路由
-      switch (index) {
-        case 'home':
-          // 如果已经在首页，不需要跳转
-          if (this.$route.path !== '/user') {
-            this.$router.push('/user')
-          }
-          break
-        case 'books':
-          this.$router.push('/user/books')
-          break
-        case 'borrow':
-          this.$router.push('/user/borrow')  // 修改这里，实际跳转
-          break
-        case 'personal':
-          this.$router.push('/user/personal')  // 修改这里，实际跳转
-          break
-        default:
-          break
+      // 检查用户是否登录
+      const userStr = localStorage.getItem('user')
+      if (!userStr) {
+        this.$message.warning('请先登录')
+        this.$router.push('/user/login')
+        return
+      }
+
+      try {
+        const user = JSON.parse(userStr)
+        if (!user || !user.id) {
+          this.$message.warning('用户信息不完整，请重新登录')
+          localStorage.removeItem('user')
+          this.$router.push('/user/login')
+          return
+        }
+
+        // 设置初始用户数据
+        this.user = user
+
+        // 修改：先加载用户信息，确保登录状态有效
+        try {
+          await this.loadUserInfo()
+        } catch (userError) {
+          // 用户信息加载失败，但不要阻止页面加载
+          // 继续使用缓存数据
+          this.$message.warning('使用缓存用户信息')
+        }
+
+        // 修改：并行加载其他数据（笔记、书籍）
+        await Promise.all([
+          this.loadNotes(),
+          this.loadAvailableBooks()
+        ])
+
+      } catch (error) {
+        this.$message.error('页面加载失败，请刷新重试')
+      } finally {
+        this.pageLoading = false
       }
     },
-    handleCommand(command) {
-  if (command === 'logout') {
-    this.logout()
-  } else if (command === 'profile' || command === 'notes') {
-    // 检查是否已经在个人中心页面
-    if (this.$route.path !== '/user/personal') {
-      this.$router.push('/user/personal')
-    } else {
-      // 如果已经在个人中心页面，可以触发一些事件来切换显示的部分
-      console.log('已经在个人中心页面')
-      
-      // 如果是笔记，可以滚动到笔记部分或激活笔记标签
-      if (command === 'notes') {
-        // 触发滚动到笔记部分
-        // this.scrollToNotesSection() // 这个方法未定义
-      }
-    }
-  }
-},
 
+    // 导航处理
+    handleNavSelect(index) {
+      this.activeNav = index
+      const routes = {
+        'home': '/user',
+        'books': '/user/books',
+        'borrow': '/user/borrow',
+        'personal': '/user/personal'
+      }
+
+      if (routes[index] && this.$route.path !== routes[index]) {
+        this.$router.push(routes[index])
+      }
+    },
+
+    handleCommand(command) {
+      if (command === 'logout') {
+        this.logout()
+      } else if (command === 'profile' || command === 'notes') {
+        if (this.$route.path !== '/user/personal') {
+          this.$router.push('/user/personal')
+        }
+      }
+    },
 
     logout() {
       localStorage.removeItem('user')
       this.$router.push('/user/login')
     },
+
     // 加载用户信息
     async loadUserInfo() {
+      this.loadingUserInfo = true
       try {
-        const res = await userApi.getUserDetail(this.user.id)
-        if (res.code === 200) {
-          // 保存当前用户的临时身份标记（如果是管理员以用户身份登录）
+        var response = await userApi.getCurrentUser()
+        response = response.data
+        if (response.code === 200) {
+          // 合并新旧用户数据
           const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
-          const isAdminLoggedAsUser = currentUser.isAdminLoggedAsUser || false
-          const originalRole = currentUser.originalRole || null
-          
-          // 合并API返回的数据和临时身份标记
-          const userData = {
-            ...res.data,
-            isAdminLoggedAsUser,
-            originalRole
+          const updatedUser = {
+            ...currentUser,
+            ...response.data,
+            // 确保重要字段不被覆盖
+            token: currentUser.token || response.data.token,
+            id: currentUser.id || response.data.id,
+            username: currentUser.username || response.data.username
           }
-          
-          this.user = userData
-          // 更新localStorage中的用户信息（保留临时身份标记）
-          localStorage.setItem('user', JSON.stringify(userData))
+
+          this.user = updatedUser
+          // 更新本地存储
+          localStorage.setItem('user', JSON.stringify(updatedUser))
+        } else {
+          // API返回错误，但不抛出异常
+          console.warn('获取用户信息API返回错误:', response.message)
         }
       } catch (error) {
-        console.error('加载用户信息失败:', error)
+        // 捕获错误但不抛出，只记录日志
+        // 保持使用现有用户数据
+        this.$message.warning('无法获取最新用户信息，使用缓存数据')
+      } finally {
+        this.loadingUserInfo = false
       }
     },
 
     // 加载笔记列表
     async loadNotes() {
-      this.notesLoading = true
-      try {
-        const params = {
-          page: this.notesPagination.page,
-          size: this.notesPagination.size,
-          ...this.noteFilter
-        }
+  this.notesLoading = true
+  try {
+    const params = {
+      page: this.notesPagination.page,
+      size: this.notesPagination.size,
+      keyword: this.noteFilter.keyword || ''
+    }
 
-        const res = await noteApi.getNotes(params)
+    const response = await noteApi.getNotes(params)
 
-        if (res.code === 200) {
-          this.notes = res.data.list
-          this.noteStats.total = res.data.total
-        } else {
-          this.$message.error(res.message)
-        }
-      } catch (error) {
-        console.error('加载笔记列表失败:', error)
-        this.$message.error('加载失败，请稍后重试')
-      } finally {
-        this.notesLoading = false
+    // 确保使用正确的数据结构
+    const res = response
+
+    if (res.code === 200) {
+      let notes = []
+      
+      // 现在res.data应该是 { total, page, size, list } 结构
+      if (res.data && res.data.list) {
+        notes = res.data.list || []
+        this.noteStats.total = res.data.total || 0
+      } else {
+        // 兼容旧格式
+        notes = res.data || []
+        this.noteStats.total = notes.length
       }
-    },
-
-    // 加载用户借阅过的书籍（用于筛选）
-    async loadUserBooks() {
-      try {
-        // 这里可以调用API获取用户借阅过的书籍
-        // 暂时使用所有书籍的前10本作为示例
-        const res = await bookApi.getBooks({ page: 1, size: 10 })
-        if (res.code === 200) {
-          this.userBooks = res.data.list
-        }
-      } catch (error) {
-        console.error('加载用户书籍失败:', error)
-      }
-    },
+      
+      
+      // 为有bookId的笔记获取图书信息
+      const notesWithBookInfo = await Promise.all(
+        notes.map(async note => {
+          // 如果没有关联书籍，直接返回原笔记数据
+          if (!note.bookId) {
+            return {
+              ...note,
+              bookTitle: '未关联书籍',
+              bookInfo: null
+            }
+          }
+          
+          try {
+            // 获取图书详情
+            const bookResponse = await bookApi.getBookDetail(note.bookId)
+            const bookRes = bookResponse.data || bookResponse
+            
+            if (bookRes.code === 200 && bookRes.data) {
+              return {
+                ...note,
+                bookTitle: bookRes.data.title || '未知图书',
+                bookInfo: bookRes.data
+              }
+            } else {
+              // 如果API返回了图书信息但在bookTitle字段中
+              return {
+                ...note,
+                bookTitle: note.bookTitle || '图书信息获取失败',
+                bookInfo: null
+              }
+            }
+          } catch (error) {
+            console.error(`获取图书 ${note.bookId} 信息失败:`, error)
+            // 使用原有数据或默认值
+            return {
+              ...note,
+              bookTitle: note.bookTitle || '图书信息获取失败',
+              bookInfo: null
+            }
+          }
+        })
+      )
+      
+      this.notes = notesWithBookInfo
+    } else {
+      this.$message.warning(res.message || '加载笔记失败')
+    }
+  } catch (error) {
+    console.error('加载笔记失败:', error)
+    this.$message.error('加载失败，请稍后重试')
+  } finally {
+    this.notesLoading = false
+  }
+},
 
     // 加载所有可用书籍（用于关联选择）
     async loadAvailableBooks() {
       try {
-        const res = await bookApi.getBooks({ page: 1, size: 50 })
+        var res = await bookApi.getBooks({ page: 1, size: 50 })
+        res = res.data
         if (res.code === 200) {
-          this.availableBooks = res.data.list
+          this.availableBooks = res.data || []
         }
       } catch (error) {
-        console.error('加载可用书籍失败:', error)
+        // 静默失败，不影响主流程
       }
     },
 
     // 重置笔记筛选
     resetNoteFilter() {
       this.noteFilter = {
-        keyword: '',
-        bookId: ''
+        keyword: ''
       }
       this.notesPagination.page = 1
       this.loadNotes()
@@ -566,55 +639,180 @@ export default {
 
     // 显示编辑资料对话框
     showEditProfile() {
+      if (!this.user) return
+
       this.profileForm = {
-        username: this.user.username,
-        email: this.user.email
+        email: this.user.email || '',
+        maxBorrowCount: this.user.maxBorrowCount || 5
       }
+
       this.editProfileDialogVisible = true
+
+      this.$nextTick(() => {
+        if (this.$refs.profileFormRef) {
+          this.$refs.profileFormRef.clearValidate()
+        }
+      })
     },
 
     // 更新个人资料
+    // 在 Personal.vue 中修改 updateProfile 方法
     async updateProfile() {
-      this.$refs.profileFormRef.validate(async (valid) => {
-        if (!valid) return
+      if (!this.$refs.profileFormRef) return
 
-        this.updatingProfile = true
+      const valid = await this.$refs.profileFormRef.validate()
+      if (!valid) return
 
-        try {
-          const updateData = {
-            username: this.profileForm.username,
-            email: this.profileForm.email
+      this.updatingProfile = true
+
+      try {
+        // 构建更新数据
+        const updateData = {}
+
+        // 只允许修改邮箱
+        if (this.profileForm.email && this.profileForm.email.trim() !== this.user.email) {
+          updateData.email = this.profileForm.email.trim()
+        }
+
+        // 如果没有需要更新的字段，直接返回
+        if (Object.keys(updateData).length === 0) {
+          this.$message.info('没有需要更新的内容')
+          this.editProfileDialogVisible = false
+          return
+        }
+
+
+        // 调用更新接口
+        const response = await userApi.updateUser(this.user.id, updateData)
+
+        // 更新成功后处理
+        this.$message.success('邮箱更新成功')
+        this.editProfileDialogVisible = false
+
+        // 更新本地用户信息中的邮箱
+        this.user.email = updateData.email
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+        currentUser.email = updateData.email
+        localStorage.setItem('user', JSON.stringify(currentUser))
+
+      } catch (error) {
+        console.error('更新邮箱失败:', error)
+
+        if (error.response) {
+          const status = error.response.status
+          const errorData = error.response.data
+
+          console.log('错误详情:', {
+            status: status,
+            data: errorData
+          })
+
+          switch (status) {
+            case 400:
+              this.$message.error(errorData?.message || '邮箱格式错误')
+              break
+            case 401:
+              // token无效或过期，只提示不跳转
+              this.$message.error('登录状态已过期，请刷新页面重新登录')
+              break
+            case 403:
+              this.$message.error('权限错误，无法修改用户信息')
+              break
+            case 404:
+              this.$message.error('用户不存在')
+              break
+            case 500:
+              this.$message.error('服务器内部错误，请稍后重试')
+              break
+            default:
+              this.$message.error(`更新失败: ${status}`)
           }
+        } else if (error.message === 'Network Error') {
+          this.$message.error('网络错误，请检查网络连接')
+        } else {
+          this.$message.error('更新失败: ' + error.message)
+        }
+      } finally {
+        this.updatingProfile = false
+      }
+    },
 
-          const res = await userApi.updateUser(this.user.id, updateData)
+    // 处理500错误
+    async handle500Error() {
+      this.$message.warning('服务器内部错误，正在验证更新状态...')
 
-          if (res.code === 200) {
-            this.$message.success('资料更新成功')
-            this.editProfileDialogVisible = false
+      // 等待一下，让后端有时间处理
+      setTimeout(async () => {
+        try {
+          // 重新获取用户信息
+          const recheck = await userApi.getCurrentUser()
 
-            // 重新加载用户信息
-            await this.loadUserInfo()
+          if (recheck.code === 200) {
+            const recheckUser = recheck.data
 
-            // 使用 dispatchEvent 触发 storage 事件，让其他页面也能响应更新
-            window.dispatchEvent(new StorageEvent('storage', {
-              key: 'user',
-              newValue: JSON.stringify(res.data)
-            }))
+            // 检查邮箱是否已更新
+            const emailUpdated = this.profileForm.email &&
+              recheckUser.email === this.profileForm.email
 
-            // 通知首页更新用户信息（使用Vue实例作为事件总线）
-            if (window.eventBus) {
-              window.eventBus.$emit('user-info-updated', res.data)
+            // 检查最大借阅数是否已更新（仅管理员）
+            const maxBorrowCountUpdated = this.user.role === 'ADMIN' &&
+              this.profileForm.maxBorrowCount !== undefined &&
+              recheckUser.maxBorrowCount === this.profileForm.maxBorrowCount
+
+            if (emailUpdated || maxBorrowCountUpdated) {
+              this.$message.success('资料已更新成功！')
+              this.editProfileDialogVisible = false
+
+              // 更新本地存储
+              const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+              const updatedUser = { ...currentUser, ...recheckUser }
+              localStorage.setItem('user', JSON.stringify(updatedUser))
+              this.user = updatedUser
+            } else {
+              this.$message.error('服务器错误，更新未生效')
             }
           } else {
-            this.$message.error(res.message)
+            this.$message.error('服务器错误，请稍后重试')
           }
-        } catch (error) {
-          console.error('更新资料失败:', error)
-          this.$message.error('更新失败，请稍后重试')
-        } finally {
-          this.updatingProfile = false
+        } catch (recheckError) {
+          this.$message.error('验证失败，请稍后重试')
         }
-      })
+      }, 1500)
+    },
+
+    // 处理500错误
+    handle500Error() {
+      this.$message.warning('服务器内部错误，正在验证更新状态...')
+
+      // 等待一下，让后端有时间处理
+      setTimeout(async () => {
+        try {
+          // 重新获取用户信息
+          const recheck = await userApi.getCurrentUser()
+
+          if (recheck.code === 200) {
+            const recheckUser = recheck.data
+
+            // 检查邮箱是否已更新
+            if (recheckUser.email === this.profileForm.email) {
+              this.$message.success('邮箱已更新成功！')
+              this.editProfileDialogVisible = false
+
+              // 更新本地存储
+              const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+              const updatedUser = { ...currentUser, email: recheckUser.email }
+              localStorage.setItem('user', JSON.stringify(updatedUser))
+              this.user = updatedUser
+            } else {
+              this.$message.error('服务器错误，更新未生效')
+            }
+          } else {
+            this.$message.error('服务器错误，请稍后重试')
+          }
+        } catch (recheckError) {
+          this.$message.error('验证失败，请稍后重试')
+        }
+      }, 1500)
     },
 
     // 显示创建笔记对话框
@@ -623,7 +821,6 @@ export default {
       this.noteDialogTitle = '新建笔记'
       this.selectedNote = null
 
-      // 重置表单
       this.noteForm = {
         id: '',
         title: '',
@@ -632,27 +829,50 @@ export default {
       }
 
       this.noteDialogVisible = true
+      this.$nextTick(() => {
+        if (this.$refs.noteFormRef) {
+          this.$refs.noteFormRef.clearValidate()
+        }
+      })
     },
 
     // 查看笔记详情
     async viewNoteDetail(note) {
-      this.noteFormLoading = true
+  this.noteFormLoading = true
+  try {
+    // 直接使用列表中已有的图书信息
+    // 因为我们在loadNotes中已经获取了图书信息
+    this.selectedNote = {
+      ...note,
+      bookTitle: note.bookTitle || (note.bookId ? '正在加载...' : '未关联书籍'),
+      bookInfo: note.bookInfo || null
+    }
+    
+    // 如果列表中没有图书信息但有bookId，再尝试获取
+    if (note.bookId && !note.bookInfo) {
       try {
-        const res = await noteApi.getNoteDetail(note.id)
-
-        if (res.code === 200) {
-          this.selectedNote = res.data
-          this.noteDetailDialogVisible = true
-        } else {
-          this.$message.error(res.message)
+        const bookResponse = await bookApi.getBookDetail(note.bookId)
+        const bookRes = bookResponse.data || bookResponse
+        
+        if (bookRes.code === 200 && bookRes.data) {
+          this.selectedNote = {
+            ...this.selectedNote,
+            bookTitle: bookRes.data.title || '未知图书',
+            bookInfo: bookRes.data
+          }
         }
-      } catch (error) {
-        console.error('获取笔记详情失败:', error)
-        this.$message.error('获取详情失败，请稍后重试')
-      } finally {
-        this.noteFormLoading = false
+      } catch (bookError) {
+        // 保持原有数据
       }
-    },
+    }
+    
+    this.noteDetailDialogVisible = true
+  } catch (error) {
+    this.$message.error('打开详情失败，请稍后重试')
+  } finally {
+    this.noteFormLoading = false
+  }
+},
 
     // 编辑笔记
     editNote(note) {
@@ -660,16 +880,20 @@ export default {
       this.noteDialogTitle = '编辑笔记'
       this.selectedNote = note
 
-      // 填充表单数据
       this.noteForm = {
         id: note.id,
-        title: note.title,
-        content: note.content,
-        bookId: note.bookId
+        title: note.title || '',
+        content: note.content || '',
+        bookId: note.bookId || null
       }
 
       this.noteDetailDialogVisible = false
       this.noteDialogVisible = true
+      this.$nextTick(() => {
+        if (this.$refs.noteFormRef) {
+          this.$refs.noteFormRef.clearValidate()
+        }
+      })
     },
 
     // 笔记对话框关闭
@@ -679,51 +903,37 @@ export default {
       }
     },
 
-    // 提交笔记表单（创建或更新）
+    // 提交笔记表单
     submitNoteForm() {
+      if (!this.$refs.noteFormRef) return
+
       this.$refs.noteFormRef.validate(async (valid) => {
         if (!valid) return
 
         this.noteFormSubmitting = true
 
         try {
+          const noteData = {
+            title: this.noteForm.title.trim(),
+            content: this.noteForm.content.trim(),
+            bookId: this.noteForm.bookId || null
+          }
+
+          let res
           if (this.isEditNoteMode) {
-            // 更新笔记
-            const updateData = {
-              title: this.noteForm.title,
-              content: this.noteForm.content,
-              bookId: this.noteForm.bookId
-            }
-
-            const res = await noteApi.updateNote(this.noteForm.id, updateData)
-
-            if (res.code === 200) {
-              this.$message.success('笔记更新成功')
-              this.noteDialogVisible = false
-              this.loadNotes() // 刷新列表
-            } else {
-              this.$message.error(res.message)
-            }
+            res = await noteApi.updateNote(this.noteForm.id, noteData)
           } else {
-            // 创建笔记
-            const createData = {
-              title: this.noteForm.title,
-              content: this.noteForm.content,
-              bookId: this.noteForm.bookId
-            }
-
-            const res = await noteApi.createNote(createData)
-
-            if (res.code === 200) {
-              this.$message.success('笔记创建成功')
-              this.noteDialogVisible = false
-              this.loadNotes() // 刷新列表
-            } else {
-              this.$message.error(res.message)
-            }
+            res = await noteApi.createNote(noteData)
+          }
+          res = res.data
+          if (res.code === 200) {
+            this.$message.success(this.isEditNoteMode ? '笔记更新成功' : '笔记创建成功')
+            this.noteDialogVisible = false
+            this.loadNotes()
+          } else {
+            this.$message.error(res.message || '操作失败')
           }
         } catch (error) {
-          console.error('操作失败:', error)
           this.$message.error('操作失败，请稍后重试')
         } finally {
           this.noteFormSubmitting = false
@@ -743,17 +953,16 @@ export default {
 
       this.deletingNote = true
       try {
-        const res = await noteApi.deleteNote(this.noteToDelete.id)
-
+        var res = await noteApi.deleteNote(this.noteToDelete.id)
+        res=res.data
         if (res.code === 200) {
           this.$message.success('笔记删除成功')
           this.deleteDialogVisible = false
-          this.loadNotes() // 刷新列表
+          this.loadNotes()
         } else {
-          this.$message.error(res.message)
+          this.$message.error(res.message || '删除失败')
         }
       } catch (error) {
-        console.error('删除笔记失败:', error)
         this.$message.error('删除失败，请稍后重试')
       } finally {
         this.deletingNote = false
@@ -764,8 +973,15 @@ export default {
     // 工具函数
     formatDate(dateString) {
       if (!dateString) return '-'
-      const date = new Date(dateString)
-      return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      try {
+        const date = new Date(dateString)
+        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      } catch (error) {
+        return dateString
+      }
     },
 
     getContentPreview(content) {
@@ -778,22 +994,15 @@ export default {
       return BOOK_CATEGORIES[categoryCode] || '未知分类'
     },
 
-    // 跳转到个人中心（已在当前页面）
-    goToPersonal() {
-      // 已经在个人中心页面
-    },
-
-    // 退出登录
-    logout() {
-      localStorage.removeItem('user')
-      this.$router.push('/user/login')
+    // 刷新数据
+    refreshData() {
+      this.loadUserInfo()
+      this.loadNotes()
     }
   }
 }
 </script>
-
 <style scoped>
-
 .personal-center {
   min-height: 100vh;
   background-image: url('../../assets/image/home2.jpg');
@@ -811,8 +1020,10 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(255, 255, 255, 0.85); /* 半透明白色遮罩 */
-  z-index: -1; /* 确保在内容下面 */
+  background: rgba(255, 255, 255, 0.85);
+  /* 半透明白色遮罩 */
+  z-index: -1;
+  /* 确保在内容下面 */
 }
 
 p,
@@ -869,6 +1080,29 @@ h2 {
 /* 激活项底部横条 */
 .nav-center .el-menu-item.is-active {
   border-bottom-color: #d4b483 !important;
+}
+
+.empty-container :deep(.ancient-primary-btn) {
+  background: linear-gradient(135deg, #a7874b, #8b7355) !important;
+  border: 1px solid #8b7355 !important;
+  color: white !important;
+  border-radius: 20px !important;
+  padding: 10px 28px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 2px 4px rgba(155, 135, 110, 0.1) !important;
+}
+
+.empty-container :deep(.ancient-primary-btn:hover) {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(155, 135, 110, 0.25) !important;
+  background: linear-gradient(135deg, #8b7355, #a7874b) !important;
+}
+
+.empty-container :deep(.ancient-primary-btn:active) {
+  transform: translateY(0) !important;
+  box-shadow: 0 2px 4px rgba(155, 135, 110, 0.1) !important;
 }
 
 /* 用户信息区域样式 */
@@ -933,13 +1167,15 @@ h2 {
 
 /* 个人信息卡片 */
 .profile-card {
-  background-color: rgba(255, 255, 255, 0.5); /* 85%不透明度，15%透明 */
+  background-color: rgba(255, 255, 255, 0.5);
+  /* 85%不透明度，15%透明 */
   padding: 40px 30px;
   border-radius: 12px;
   margin-bottom: 30px;
   box-shadow: 0 4px 12px rgba(155, 135, 110, 0.15);
   border: 1px solid #e8d4b8;
-  backdrop-filter: blur(10px); /* 可选：添加毛玻璃效果 */
+  backdrop-filter: blur(10px);
+  /* 可选：添加毛玻璃效果 */
 }
 
 .avatar-center-section {
@@ -1090,21 +1326,25 @@ h2 {
 
 /* 编辑按钮样式 */
 .note-actions /deep/ .el-button.el-button--text:first-child {
-  color: #5b7d5b !important; /* 绿色系，表示编辑 */
+  color: #5b7d5b !important;
+  /* 绿色系，表示编辑 */
 }
 
 .note-actions /deep/ .el-button.el-button--text:first-child:hover {
-  color: #7aa57a !important; /* 悬停时更亮 */
+  color: #7aa57a !important;
+  /* 悬停时更亮 */
   background-color: rgba(91, 125, 91, 0.1) !important;
 }
 
 /* 删除按钮样式 */
 .note-actions /deep/ .el-button.el-button--text:last-child {
-  color: #c77 !important; /* 红色系，表示删除 */
+  color: #c77 !important;
+  /* 红色系，表示删除 */
 }
 
 .note-actions /deep/ .el-button.el-button--text:last-child:hover {
-  color: #a55 !important; /* 悬停时更深 */
+  color: #a55 !important;
+  /* 悬停时更深 */
   background-color: rgba(204, 119, 119, 0.1) !important;
 }
 
@@ -1204,12 +1444,15 @@ h2 {
 
 /* 笔记管理区域 */
 .notes-section {
-  background-color: rgba(255, 255, 255, 0.8); /* 85%不透明度，15%透明 */
+  background-color: rgba(255, 255, 255, 0.8);
+  /* 85%不透明度，15%透明 */
   padding: 30px;
   border-radius: 8px;
-  border: 1px solid #eddebd; /* 添加这行，确保有宽度、样式和颜色 */
+  border: 1px solid #eddebd;
+  /* 添加这行，确保有宽度、样式和颜色 */
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(10px); /* 可选：添加毛玻璃效果 */
+  backdrop-filter: blur(10px);
+  /* 可选：添加毛玻璃效果 */
 }
 
 .section-header {
@@ -1233,11 +1476,11 @@ h2 {
 
 
 /* 笔记筛选区域 */
-.notes-filter .el-input__inner{
+.notes-filter .el-input__inner {
   /* 输入框边框颜色 */
 
-    border: 1px solid #e8d4b8;
-    border-radius: 4px;
+  border: 1px solid #e8d4b8;
+  border-radius: 4px;
 }
 
 .notes-filter .el-button {
@@ -1286,16 +1529,19 @@ h2 {
 
 /* 笔记卡片样式 */
 .note-card {
-  border: 1px solid #e8d4b8; /* 浅棕色边框 */
+  border: 1px solid #e8d4b8;
+  /* 浅棕色边框 */
   border-radius: 8px;
   padding: 20px;
-  background: #ffffff; /* 淡米色背景 */
+  background: #ffffff;
+  /* 淡米色背景 */
   transition: all 0.3s;
   cursor: pointer;
 }
 
 .note-card:hover {
-  box-shadow: 0 4px 12px rgba(155, 135, 110, 0.2); /* 暖色阴影 */
+  box-shadow: 0 4px 12px rgba(155, 135, 110, 0.2);
+  /* 暖色阴影 */
   transform: translateY(-2px);
 }
 
@@ -1310,7 +1556,8 @@ h2 {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: #5b4636; /* 深棕色标题 */
+  color: #5b4636;
+  /* 深棕色标题 */
   flex: 1;
   margin-right: 10px;
   overflow: hidden;
@@ -1323,7 +1570,8 @@ h2 {
 }
 
 .note-content-preview {
-  color: #8b7355; /* 中棕色内容 */
+  color: #8b7355;
+  /* 中棕色内容 */
   font-size: 14px;
   line-height: 1.6;
   margin-bottom: 15px;
@@ -1340,7 +1588,8 @@ h2 {
   justify-content: space-between;
   align-items: center;
   font-size: 12px;
-  color: #51401f; /* 金色元数据 */
+  color: #51401f;
+  /* 金色元数据 */
 }
 
 .note-book,
@@ -1395,7 +1644,7 @@ h2 {
 
 /* 当前选择页面悬停效果 */
 .pagination-container /deep/ .el-pagination.is-background .el-pager li.active:hover {
-  background: #554d39!important;
+  background: #554d39 !important;
   border-color: #4e3e31 !important;
   transform: translateY(-1px);
   box-shadow: 0 3px 10px rgba(91, 70, 54, 0.5);

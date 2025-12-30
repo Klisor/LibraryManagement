@@ -512,12 +512,12 @@ export default {
           ...this.searchForm
         }
         
-        const res = await bookApi.getBooks(params)
-        
+        var res = await bookApi.getBooks(params)
+        res=res.data
         if (res.code === 200) {
           // 保存所有过滤后的数据
-          this.allBooks = res.data.list
-          this.pagination.total = res.data.total
+          this.allBooks = res.data
+          this.pagination.total = res.data.length
           
           // 重置当前页到第一页
           if (this.pagination.page > Math.ceil(res.data.total / this.pagination.size)) {
@@ -632,8 +632,8 @@ export default {
         type: 'warning'
       }).then(async () => {
         try {
-          const res = await bookApi.deleteBook(book.id)
-          
+          var res = await bookApi.deleteBook(book.id)
+          res=res.data
           if (res.code === 200) {
             this.$message.success('删除成功')
             this.loadBooks()
@@ -659,8 +659,8 @@ export default {
         try {
           if (this.form.id) {
             // 编辑图书
-            const res = await bookApi.updateBook(this.form.id, this.form)
-            
+            var res = await bookApi.updateBook(this.form.id, this.form)
+            res=res.data
             if (res.code === 200) {
               this.$message.success('编辑成功')
               this.dialogVisible = false
@@ -675,8 +675,8 @@ export default {
               category: Number(this.form.category)
             }
             
-            const res = await bookApi.addBook(bookData)
-            
+            var res = await bookApi.addBook(bookData)
+            res=res.data
             if (res.code === 200 && res.data) {
               const addedBook = res.data
               this.$message.success(`图书《${addedBook.title}》已添加成功，ID: ${addedBook.id}`)

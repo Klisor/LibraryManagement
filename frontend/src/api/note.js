@@ -393,8 +393,105 @@ const mockApi = {
 // 真实API
 const realApi = {
   // 获取当前用户的笔记列表（分页）
-  async getNotes(params) {
-    return request.get('/notes', { params })
+  async getNotes(params = {}) {
+    try {
+      const { 
+        page = 1, 
+        size = 10,
+        keyword = '',
+        bookId = ''
+      } = params
+      
+      // 调用后端API
+      const response = await request.get('/notes', { params })
+      
+      let data = response.data || response
+      
+      // 确保返回的数据结构统一
+      if (data.code === 200) {
+        let notes = []
+        let total = 0
+        
+        // 处理不同的响应格式
+        if (Array.isArray(data.data)) {
+          // 格式: { code: 200, data: [...] }
+          notes = data.data
+          total = notes.length
+        } else if (data.data && Array.isArray(data.data.list)) {
+          // 格式: { code: 200, data: { list: [...], total: X, page: X, size: X } }
+          notes = data.data.list
+          total = data.data.total || notes.length
+        } else {
+          // 其他格式
+          notes = data.data || []
+          total = notes.length
+        }
+        
+        // 前端过滤（如果后端不支持所有筛选参数）
+        let filteredNotes = notes
+        
+        // 按书籍ID筛选
+        if (bookId !== undefined && bookId !== '') {
+          // 如果bookId为0，表示筛选未关联书籍（bookId为null）
+          if (Number(bookId) === 0) {
+            filteredNotes = filteredNotes.filter(note => !note.bookId)
+          } else {
+            // 否则筛选指定bookId的笔记
+            filteredNotes = filteredNotes.filter(note => note.bookId === Number(bookId))
+          }
+        }
+        
+        // 关键词搜索（标题和内容）
+        if (keyword && keyword.trim()) {
+          const searchTerm = keyword.trim().toLowerCase()
+          filteredNotes = filteredNotes.filter(note => 
+            (note.title && note.title.toLowerCase().includes(searchTerm)) ||
+            (note.content && note.content.toLowerCase().includes(searchTerm))
+          )
+        }
+        
+        // 排序：最新的在前面
+        filteredNotes.sort((a, b) => 
+          new Date(b.createdAt || b.created_at || 0) - 
+          new Date(a.createdAt || a.created_at || 0)
+        )
+        
+        // 分页
+        const start = (page - 1) * size
+        const end = start + size
+        const paginatedNotes = filteredNotes.slice(start, end)
+        
+        // 确保返回格式与mockApi一致
+        return {
+          code: 200,
+          message: '成功',
+          data: {
+            total: filteredNotes.length,
+            page: Number(page),
+            size: Number(size),
+            list: paginatedNotes
+          }
+        }
+      } else {
+        // API返回错误
+        return data
+      }
+      
+    } catch (error) {
+      console.error('笔记API错误:', error)
+      
+      // 错误时返回空数据
+      return {
+        code: 500,
+        message: '获取笔记失败',
+        data: {
+          total: 0,
+          page: params.page || 1,
+          size: params.size || 10,
+          list: []
+        }
+      }
+    }
   },
   
   // 获取笔记详情

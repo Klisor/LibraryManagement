@@ -2,7 +2,7 @@
   <div class="admin-login ancient-login">
     <!-- 古籍风格背景层 -->
     <div class="ancient-background"></div>
-    
+
     <div class="login-container">
       <div class="login-card ancient-card">
         <!-- 古籍风格标题 -->
@@ -12,44 +12,29 @@
           </div>
           <h1 class="ancient-title-text">知行书阁</h1>
         </div>
-        
+
         <p class="ancient-subtitle">图书管理系统 - 管理员登录</p>
-        
+
         <!-- 古籍风格表单 -->
         <el-form :model="form" :rules="rules" ref="loginForm" class="login-form ancient-form">
           <el-form-item prop="username">
-            <el-input
-              v-model="form.username"
-              placeholder="管理员用户名"
-              prefix-icon="el-icon-user"
-              class="ancient-input"
-            ></el-input>
+            <el-input v-model="form.username" placeholder="管理员用户名" prefix-icon="el-icon-user"
+              class="ancient-input"></el-input>
           </el-form-item>
-          
+
           <el-form-item prop="password">
-            <el-input
-              v-model="form.password"
-              type="password"
-              placeholder="密码"
-              prefix-icon="el-icon-lock"
-              @keyup.enter.native="handleLogin"
-              class="ancient-input"
-            ></el-input>
+            <el-input v-model="form.password" type="password" placeholder="密码" prefix-icon="el-icon-lock"
+              @keyup.enter.native="handleLogin" class="ancient-input"></el-input>
           </el-form-item>
-          
+
           <el-form-item>
-            <el-button
-              type="primary"
-              @click="handleLogin"
-              class="ancient-btn login-btn"
-              :loading="loading"
-            >
+            <el-button type="primary" @click="handleLogin" class="ancient-btn login-btn" :loading="loading">
               <i class="el-icon-s-tools"></i>
               管理员登录
             </el-button>
           </el-form-item>
         </el-form>
-        
+
         <!-- 古籍风格底部链接 - 只保留用户登录按钮，放在右下角 -->
         <div class="ancient-actions single-action">
           <el-button class="ancient-link-btn user-login-btn" @click="$router.push('/user/login')">
@@ -63,6 +48,8 @@
 </template>
 
 <script>
+import { authApi } from '@/api/auth'
+import { API_CONFIG } from '@/config/api.config'
 export default {
   name: 'AdminLogin',
   data() {
@@ -86,55 +73,60 @@ export default {
   },
   methods: {
     handleLogin() {
-      this.$refs.loginForm.validate((valid) => {
+      this.$refs.loginForm.validate(async (valid) => {
         if (!valid) return
-        
+
         this.loading = true
-        
-        // 模拟管理员登录 - 支持多种验证方式
-        setTimeout(() => {
-          // 1. 固定的模拟管理员
-          const mockAdmins = [
-            { username: 'admin', password: '123456', role: 'ADMIN', id: 1, email: 'admin@example.com', maxBorrowCount: 10, borrowedCount: 0 }
-          ]
-          
-          // 2. 从localStorage中获取所有注册的用户，筛选出管理员
-          const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
-          const registeredAdmins = registeredUsers.filter(u => u.role === 'ADMIN')
-          
-          // 3. 合并所有管理员数据
-          const allAdmins = [...mockAdmins, ...registeredAdmins]
-          
-          // 4. 查找管理员用户（只支持用户名登录）
-          const admin = allAdmins.find(u => {
-            // 检查用户名是否匹配
-            const isUsernameMatch = u.username === this.form.username
-            // 检查密码是否匹配
-            const isPasswordMatch = u.password === this.form.password
-            // 必须是管理员角色
-            const isAdminRole = u.role === 'ADMIN'
-            
-            return isUsernameMatch && isPasswordMatch && isAdminRole
-          })
-          
-          if (admin) {
-            // 移除密码字段，将管理员信息存入localStorage
-            const { password, ...adminWithoutPassword } = admin
-            localStorage.setItem('user', JSON.stringify(adminWithoutPassword))
-            
-            this.$message.success('登录成功')
-            
-            // 确保在Vue的下一个更新周期后跳转
+
+        try {
+          const admin = await authApi.login(this.form)
+          var response = admin.data
+
+          if (response.code === 200) {
+            response = response.data
+            console.log(response)
+
+            // 检查用户角色 - 只有管理员可以登录此界面
+            const userRole = response.data?.user?.role
+            if (userRole !== 'ADMIN') {
+              this.$message.error('权限不足：只有管理员可以登录此界面')
+
+              // 清除可能已经存储的token
+              if (response.data && response.data.token) {
+                localStorage.removeItem('user')
+              }
+
+              this.loading = false
+              return
+            }
+
+            this.$message.success(response.message || '登录成功')
+            console.log(response)
+
+            if (response.data && response.data.token) {
+              const userInfo = {
+                ...response.data.user,
+                token: response.data.token,
+                expiresIn: response.data.expiresIn
+              }
+              console.log("login!!!")
+              localStorage.setItem('user', JSON.stringify(userInfo))
+            }
+
             this.$nextTick(() => {
               this.$router.replace('/admin').catch(() => {
                 this.$router.push('/admin')
               })
             })
           } else {
-            this.$message.error('管理员用户名或密码错误')
+            this.$message.error(response.message || '登录失败')
           }
+        } catch (error) {
+          console.error('登录错误:', error)
+          this.$message.error('登录失败，请稍后重试')
+        } finally {
           this.loading = false
-        }, 500)
+        }
       })
     }
   }
@@ -160,7 +152,8 @@ export default {
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  opacity: 0.85; /* 比用户登录页稍深 */
+  opacity: 0.85;
+  /* 比用户登录页稍深 */
   z-index: 1;
 }
 
@@ -172,7 +165,8 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(240, 235, 225, 0.1); /* 比用户登录页稍深 */
+  background: rgba(240, 235, 225, 0.1);
+  /* 比用户登录页稍深 */
   z-index: 2;
 }
 
@@ -185,14 +179,20 @@ export default {
   align-items: center;
   min-height: 100vh;
   padding: 20px;
-  
+
   /* 添加半透明毛玻璃效果 */
-  background: rgba(255, 255, 255, 0.05); /* 半透明白色背景 */
-  backdrop-filter: blur(10px); /* 毛玻璃模糊效果 */
-  -webkit-backdrop-filter: blur(10px); /* 兼容Safari */
-  border-radius: 16px; /* 圆角 */
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37); /* 阴影增强效果 */
-  border: 1px solid rgba(255, 255, 255, 0.18); /* 白色边框增强玻璃感 */
+  background: rgba(255, 255, 255, 0.05);
+  /* 半透明白色背景 */
+  backdrop-filter: blur(10px);
+  /* 毛玻璃模糊效果 */
+  -webkit-backdrop-filter: blur(10px);
+  /* 兼容Safari */
+  border-radius: 16px;
+  /* 圆角 */
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  /* 阴影增强效果 */
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  /* 白色边框增强玻璃感 */
 }
 
 
@@ -200,23 +200,24 @@ export default {
 /* 古籍风格卡片 - 使用稍深的背景色 */
 /* 加强古籍风格卡片的毛玻璃效果 */
 .ancient-card {
-  background: linear-gradient(
-    135deg,
-    rgba(244, 241, 235, 0.98), /* 提高不透明度 */
-    rgba(246, 243, 235, 0.9)
-  );
+  background: linear-gradient(135deg,
+      rgba(244, 241, 235, 0.98),
+      /* 提高不透明度 */
+      rgba(246, 243, 235, 0.9));
   border-radius: 20px;
   padding: 40px;
   width: 100%;
   max-width: 480px;
   text-align: center;
-  box-shadow: 
+  box-shadow:
     0 20px 40px rgba(130, 110, 85, 0.25),
     0 10px 20px rgba(130, 110, 85, 0.2),
     inset 0 1px 2px rgba(255, 255, 255, 0.8);
   border: 1px solid rgba(200, 180, 150, 0.7);
-  backdrop-filter: blur(15px); /* 增加模糊度 */
-  -webkit-backdrop-filter: blur(15px); /* Safari兼容 */
+  backdrop-filter: blur(15px);
+  /* 增加模糊度 */
+  -webkit-backdrop-filter: blur(15px);
+  /* Safari兼容 */
   position: relative;
   overflow: hidden;
 }
@@ -229,7 +230,8 @@ export default {
   left: 10px;
   right: 10px;
   bottom: 10px;
-  border: 2px solid rgba(180, 155, 115, 0.3); /* 稍深的边框 */
+  border: 2px solid rgba(180, 155, 115, 0.3);
+  /* 稍深的边框 */
   border-radius: 15px;
   pointer-events: none;
 }
@@ -255,7 +257,8 @@ export default {
 .ancient-title-text {
   display: inline-block;
   vertical-align: middle;
-  color: #5c4d3c; /* 比用户登录页稍深的颜色 */
+  color: #5c4d3c;
+  /* 比用户登录页稍深的颜色 */
   font-size: 28px;
   font-family: "STKaiti", "SimSun", serif;
   margin: 0;
@@ -263,7 +266,8 @@ export default {
 }
 
 .ancient-subtitle {
-  color: #6b573c; /* 比用户登录页稍深的颜色 */
+  color: #6b573c;
+  /* 比用户登录页稍深的颜色 */
   margin-bottom: 40px;
   font-size: 16px;
   font-family: "STKaiti", "KaiTi", serif;
@@ -277,8 +281,10 @@ export default {
 /* 古籍风格输入框 */
 .ancient-input /deep/ .el-input__inner {
   background-color: #fffffe !important;
-  border: 2px solid #d8c4a8 !important; /* 稍深的边框 */
-  color: #4a3c2c !important; /* 稍深的文字颜色 */
+  border: 2px solid #d8c4a8 !important;
+  /* 稍深的边框 */
+  color: #4a3c2c !important;
+  /* 稍深的文字颜色 */
   transition: all 0.3s !important;
   border-radius: 8px !important;
   height: 48px;
@@ -286,32 +292,38 @@ export default {
 }
 
 .ancient-input /deep/ .el-input__inner:focus {
-  border-color: #b89a7c !important; /* 稍深的焦点边框 */
-  box-shadow: 0 0 0 2px rgba(184, 154, 124, 0.4) !important; /* 稍深的焦点阴影 */
+  border-color: #b89a7c !important;
+  /* 稍深的焦点边框 */
+  box-shadow: 0 0 0 2px rgba(184, 154, 124, 0.4) !important;
+  /* 稍深的焦点阴影 */
   background-color: #fffdfa !important;
 }
 
 .ancient-input /deep/ .el-input__inner::placeholder {
-  color: #8b6f4b !important; /* 稍深的占位符颜色 */
+  color: #8b6f4b !important;
+  /* 稍深的占位符颜色 */
   opacity: 0.7 !important;
 }
 
 .ancient-input /deep/ .el-input__prefix .el-icon-user,
 .ancient-input /deep/ .el-input__prefix .el-icon-lock {
-  color: #8b6f4b !important; /* 稍深的图标颜色 */
+  color: #8b6f4b !important;
+  /* 稍深的图标颜色 */
   font-size: 18px;
 }
 
 /* 古籍风格按钮 - 使用稍深的颜色 */
 .ancient-btn.login-btn {
-  background: linear-gradient(135deg, #8b6f4b, #6b573c); /* 比用户登录页稍深的颜色 */
+  background: linear-gradient(135deg, #8b6f4b, #6b573c);
+  /* 比用户登录页稍深的颜色 */
   border: 2px solid #6b573c;
   color: white;
   font-weight: bold;
   padding: 12px 24px;
   border-radius: 25px;
   transition: all 0.3s;
-  box-shadow: 0 4px 12px rgba(130, 110, 85, 0.35); /* 稍深的阴影 */
+  box-shadow: 0 4px 12px rgba(130, 110, 85, 0.35);
+  /* 稍深的阴影 */
   font-family: "STKaiti", "KaiTi", serif;
   font-size: 17px;
   width: 100%;
@@ -322,7 +334,8 @@ export default {
   background: linear-gradient(135deg, #6b573c, #8b6f4b);
   border-color: #8b6f4b;
   transform: translateY(-3px);
-  box-shadow: 0 8px 20px rgba(130, 110, 85, 0.5); /* 稍深的悬停阴影 */
+  box-shadow: 0 8px 20px rgba(130, 110, 85, 0.5);
+  /* 稍深的悬停阴影 */
 }
 
 .ancient-btn.login-btn:active {
@@ -383,19 +396,19 @@ export default {
     width: 90%;
     margin: 0 auto;
   }
-  
+
   .ancient-title-text {
     font-size: 24px;
   }
-  
+
   .ancient-subtitle {
     font-size: 14px;
   }
-  
+
   .ancient-actions.single-action {
     justify-content: center;
   }
-  
+
   .ancient-actions.single-action .ancient-link-btn {
     width: 100%;
   }
@@ -405,34 +418,34 @@ export default {
   .ancient-card {
     padding: 25px 15px;
   }
-  
+
   .ancient-title-section {
     flex-direction: column;
     gap: 10px;
   }
-  
+
   .ancient-title-icon {
     margin-right: 0;
   }
-  
+
   .title-logo {
     width: 28px;
     height: 28px;
   }
-  
+
   .ancient-title-text {
     font-size: 22px;
   }
-  
+
   .ancient-subtitle {
     font-size: 13px;
   }
-  
+
   .ancient-btn.login-btn {
     height: 44px;
     font-size: 15px;
   }
-  
+
   .ancient-input /deep/ .el-input__inner {
     height: 44px;
     font-size: 15px;

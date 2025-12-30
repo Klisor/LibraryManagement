@@ -221,8 +221,8 @@ export default {
       this.error = ''
       
       try {
-        const res = await bookApi.getBookDetail(this.bookId)
-        
+        var res = await bookApi.getBookDetail(this.bookId)
+        res=res.data
         if (res.code === 200) {
           this.book = res.data
         } else {

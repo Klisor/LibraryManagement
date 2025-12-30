@@ -82,39 +82,80 @@ const router = new VueRouter({
 })
 
 // 路由守卫 - 权限检查
+// 路由守卫 - 权限检查
+// 路由守卫 - 权限检查
 router.beforeEach((to, from, next) => {
-  const user = JSON.parse(localStorage.getItem('user') || '{}')
   
-  // 检查是否需要登录
-  if (to.meta.requiresAuth && !user.id) {
-    if (to.meta.role === 'ADMIN' || to.meta.requiresAdmin) {
-      next('/admin/login')
-    } else {
-      next('/user/login')
+  // 获取用户信息
+  let user = null
+  try {
+    const userStr = localStorage.getItem('user')
+    if (userStr && userStr !== 'null' && userStr !== 'undefined') {
+      user = JSON.parse(userStr)
     }
-    return
+  } catch (e) {
+    console.error('解析用户信息失败:', e)
+    localStorage.removeItem('user')
   }
   
-  // 检查角色权限
-  if (to.meta.requiresAuth) {
-    // 如果是管理员页面，检查用户是否是管理员
-    if ((to.meta.role === 'ADMIN' || to.meta.requiresAdmin)) {
-      if (user.role !== 'ADMIN') {
-        alert('无权访问管理员页面')
-        next('/user')
-        return
-      }
-    }
+  
+  // 检查公共页面（不需要登录）
+  const publicPages = ['/admin/login', '/user/login', '/user/register']
+  
+  if (publicPages.includes(to.path)) {
     
-    // 如果是用户页面，允许普通用户和管理员访问
-    if (to.meta.role === 'USER') {
-      // 允许普通用户和管理员访问用户页面
-      if (user.role === 'USER' || user.role === 'ADMIN') {
+    // 如果用户已经登录，根据角色重定向到对应主页
+    if (user && user.id) {
+      
+      // 避免重定向循环：检查目标是否是当前页面
+      if ((user.role === 'ADMIN' && to.path === '/admin') || 
+          (user.role !== 'ADMIN' && to.path === '/user')) {
         next()
         return
       }
       
-      alert('请以用户或管理员身份登录')
+      // 根据角色重定向
+      if (user.role === 'ADMIN') {
+        next('/admin')
+      } else {
+        next('/user')
+      }
+      return
+    }
+    
+    // 未登录，允许访问登录/注册页
+    next()
+    return
+  }
+  
+  // 检查是否需要登录
+  if (to.meta.requiresAuth) {
+    
+    if (!user || !user.id) {
+      
+      // 根据目标页面的类型选择登录页
+      if (to.meta.role === 'ADMIN') {
+        next({
+          path: '/admin/login',
+          query: { redirect: to.fullPath }
+        })
+      } else {
+        next({
+          path: '/user/login',
+          query: { redirect: to.fullPath }
+        })
+      }
+      return
+    }
+    
+    
+    // 检查角色权限
+    if (to.meta.role === 'ADMIN' && user.role !== 'ADMIN') {
+      next('/user')
+      return
+    }
+    
+    if (to.meta.role === 'USER' && user.role !== 'USER' && user.role !== 'ADMIN') {
       next('/user/login')
       return
     }
@@ -122,5 +163,4 @@ router.beforeEach((to, from, next) => {
   
   next()
 })
-
 export default router

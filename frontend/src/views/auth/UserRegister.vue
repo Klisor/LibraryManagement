@@ -81,115 +81,172 @@
 </template>
 
 <script>
-export default {
-  name: 'UserRegister',
-  data() {
-    // 确认密码的验证规则
-    const validateConfirmPassword = (rule, value, callback) => {
-      if (value !== this.form.password) {
-        callback(new Error('两次输入的密码不一致'))
-      } else {
-        callback()
+  import { authApi } from '@/api/auth'
+  
+  export default {
+    name: 'UserRegister',
+    data() {
+      // 确认密码的验证规则
+      const validateConfirmPassword = (rule, value, callback) => {
+        if (value !== this.form.password) {
+          callback(new Error('两次输入的密码不一致'))
+        } else {
+          callback()
+        }
       }
-    }
-    
-    return {
-      form: {
-        username: '',
-        password: '',
-        confirmPassword: '',
-        email: ''
-      },
-      loading: false,
-      rules: {
-        username: [
-          { required: true, message: '请输入用户名', trigger: 'blur' },
-          { min: 3, max: 20, message: '长度在3-20个字符', trigger: 'blur' }
-        ],
-        password: [
-          { required: true, message: '请输入密码', trigger: 'blur' },
-          { min: 6, max: 20, message: '长度在6-20个字符', trigger: 'blur' }
-        ],
-        confirmPassword: [
-          { required: true, message: '请确认密码', trigger: 'blur' },
-          { validator: validateConfirmPassword, trigger: 'blur' }
-        ],
-        email: [
-          { required: true, message: '请输入邮箱地址', trigger: 'blur' },
-          { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
-        ]
-      }
-    }
-  },
-  methods: {
-    handleRegister() {
-      this.$refs.registerForm.validate((valid) => {
-        if (!valid) return
-        
-        this.loading = true
-        
-        // 模拟注册过程
-        setTimeout(() => {
-          // 1. 获取已注册的用户列表
-          const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
-          
-          // 2. 检查用户名是否已存在（包括模拟用户和已注册用户）
-          const mockUsers = [
-            { username: 'admin', password: '123456', email: 'admin@example.com' },
-            { username: 'user1', password: '123456', email: 'user1@example.com' },
-            { username: '李四', password: '123456', email: 'lisi@example.com' },
-            { username: '王五', password: '123456', email: 'wangwu@example.com' },
-            { username: '赵六', password: '123456', email: 'zhaoliu@example.com' }
+      
+      return {
+        form: {
+          username: '',
+          password: '',
+          confirmPassword: '',
+          email: ''
+        },
+        loading: false,
+        rules: {
+          username: [
+            { required: true, message: '请输入用户名', trigger: 'blur' },
+            { min: 3, max: 20, message: '长度在3-20个字符', trigger: 'blur' }
+          ],
+          password: [
+            { required: true, message: '请输入密码', trigger: 'blur' },
+            { min: 6, max: 20, message: '长度在6-20个字符', trigger: 'blur' }
+          ],
+          confirmPassword: [
+            { required: true, message: '请确认密码', trigger: 'blur' },
+            { validator: validateConfirmPassword, trigger: 'blur' }
+          ],
+          email: [
+            { required: true, message: '请输入邮箱地址', trigger: 'blur' },
+            { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
           ]
+        }
+      }
+    },
+    methods: {
+      async handleRegister() {
+        this.$refs.registerForm.validate(async (valid) => {
+          if (!valid) return
           
-          const allUsers = [...mockUsers, ...registeredUsers]
+          this.loading = true
           
-          const usernameExists = allUsers.some(user => user.username === this.form.username)
-          if (usernameExists) {
-            this.$message.error('用户名已存在')
+          try {
+            // 构建注册数据
+            const registerData = {
+              username: this.form.username,
+              password: this.form.password,
+              email: this.form.email
+            }
+            
+            // 调用后端API注册接口
+            var response = await authApi.register(registerData)
+            response=response.data
+            console.log(response)
+            // 根据设计文档，注册成功返回200
+            if (response.code === 200) {
+              this.$message.success(response.message || '注册成功！请登录')
+              
+              // 延迟跳转到登录页面
+              setTimeout(() => {
+                this.$router.push('/user/login')
+              }, 800)
+            } else {
+              // 注册返回非200状态码，但用户可能已创建
+              this.handleRegistrationResponse(response)
+            }
+            
+          } catch (error) {
+            // 捕获请求异常
+            this.handleRegistrationError(error)
+          } finally {
             this.loading = false
-            return
           }
+        })
+      },
+      
+      // 处理注册响应（非200状态码）
+      handleRegistrationResponse(response) {
+        // 检查响应中是否有用户已存在的信息
+        const errorMessage = response.message || '注册过程中出现异常'
+        
+        // 如果是用户名或邮箱已存在的错误
+        if (errorMessage.includes('已存在') || 
+            errorMessage.includes('已注册') || 
+            errorMessage.includes('exist')) {
+          this.$message.error(errorMessage)
+          return
+        }
+        
+        // 其他错误，尝试验证用户是否真的创建成功
+        this.$message.warning('正在验证用户创建状态...')
+        
+        // 延迟验证，确保后端处理完成
+        setTimeout(async () => {
+          await this.verifyUserCreation()
+        }, 1500)
+      },
+      
+      // 处理注册错误（网络或服务器错误）
+      handleRegistrationError(error) {
+        if (error.response) {
+          const status = error.response.status
+          const errorData = error.response.data
+          const errorMessage = errorData?.message || '注册失败'
           
-          // 3. 检查邮箱是否已存在
-          const emailExists = allUsers.some(user => user.email === this.form.email)
-          if (emailExists) {
-            this.$message.error('邮箱已存在')
-            this.loading = false
-            return
+          switch (status) {
+            case 400:
+              this.$message.error(errorMessage)
+              break
+            case 409: // 冲突，通常表示用户名或邮箱已存在
+              this.$message.error(errorMessage)
+              break
+            case 500:
+              // 500错误但数据库可能已经创建了用户
+              this.$message.warning('正在验证用户创建状态...')
+              
+              // 延迟验证，确保后端处理完成
+              setTimeout(async () => {
+                await this.verifyUserCreation()
+              }, 1500)
+              break
+            default:
+              this.$message.error(`注册失败: ${status}`)
           }
-          
-          // 4. 创建新用户（普通用户）
-          const newUser = {
-            id: Date.now(), // 使用时间戳作为ID
+        } else if (error.message === 'Network Error') {
+          this.$message.error('网络错误，请检查网络连接')
+        } else {
+          this.$message.error('注册失败，请重试')
+        }
+      },
+      
+      // 验证用户是否创建成功
+      async verifyUserCreation() {
+        try {
+          const loginData = {
             username: this.form.username,
-            password: this.form.password,
-            email: this.form.email,
-            role: 'USER', // 固定为普通用户
-            maxBorrowCount: 5, // 普通用户默认5本
-            borrowedCount: 0,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
+            password: this.form.password
           }
           
-          // 5. 将新用户添加到注册用户列表
-          registeredUsers.push(newUser)
-          localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers))
+          const loginResponse = await authApi.login(loginData)
           
-          this.$message.success('注册成功！请登录')
-          this.loading = false
-          
-          // 6. 跳转到登录页面，而不是直接登录
-          setTimeout(() => {
-            this.$router.push('/user/login')
-          }, 800)
-        }, 800)
-      })
+          if (loginResponse.code === 200) {
+            this.$message.success('注册成功！可以正常登录')
+            
+            // 自动跳转到登录页面
+            setTimeout(() => {
+              this.$router.push('/user/login')
+            }, 1000)
+          } else {
+            this.$message.error('注册失败，请重试或联系管理员')
+          }
+        } catch (loginError) {
+          // 如果登录失败，说明用户确实没有创建成功
+          this.$message.error('注册失败，用户未创建成功')
+        }
+      }
     }
   }
-}
-</script>
-
+  </script>
 <style scoped>
 /* 古籍风格整体样式 */
 .ancient-register {
