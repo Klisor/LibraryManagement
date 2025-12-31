@@ -48,10 +48,8 @@
               <h1>欢迎回来，{{ user.username }}！</h1>
               <p>尽情探索图书馆的宝藏吧</p>
             </div>
-            <form class="semi-form kSyqFRia semi-form-vertical" 
-      id="35160b49-f6c4-4cfe-81c6-7453920959f8"
-      x-form-id="35160b49-f6c4-4cfe-81c6-7453920959f8"
-      @submit.prevent="handleSearch"> 
+            <form class="semi-form kSyqFRia semi-form-vertical" id="35160b49-f6c4-4cfe-81c6-7453920959f8"
+              x-form-id="35160b49-f6c4-4cfe-81c6-7453920959f8" @submit.prevent="handleSearch">
               <div class="X9lCp15V">
                 <div class="JAuiogAS n439QfWC semi-form-field-pure">
                   <div class="semi-input-wrapper semi-input-wrapper-default">
@@ -84,7 +82,7 @@
                 <div class="rjxXKT6M"></div>
               </div>
               <a href="javascript:void(0)" @click.prevent="handleNavSelect('books')">
-                共收录5000+本图书，查看书库
+                收录海量图书，查看书库
               </a>
 
               <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 13 13">
@@ -149,100 +147,107 @@
 
       <!-- 主内容区 -->
       <el-main class="user-main ancient-main">
-  <div class="main-layout">
-<!-- 左侧分类 -->
-<div class="left-panel">
-      <div class="categories-section ancient-section">
-        <h3 class="ancient-title">
-          <img src="../../assets/image/icons/category.png" class="title-icon" /> 图书分类
-        </h3>
-        <div class="category-list">
-          <div
-            v-for="(category, index) in categories"
-            :key="category.id"
-            class="category-item-wrapper"
-          >
-            <div
-              class="category-item ancient-item"
-              :class="{ 'left': index % 2 === 0, 'right': index % 2 === 1 }"
-              @click="handleCategoryClick(category.id)"
-            >
-              <div class="category-icon ancient-icon">
-                <i :class="category.icon"></i>
+        <div class="main-layout">
+          <!-- 左侧分类 -->
+          <div class="left-panel">
+            <div class="categories-section ancient-section">
+              <h3 class="ancient-title">
+                <img src="../../assets/image/icons/category.png" class="title-icon" /> 图书分类
+              </h3>
+              <div class="category-list">
+                <div v-for="(category, index) in categories" :key="category.id" class="category-item-wrapper">
+                  <div class="category-item ancient-item" :class="{ 'left': index % 2 === 0, 'right': index % 2 === 1 }"
+                    @click="handleCategoryClick(category.id)">
+                    <div class="category-icon ancient-icon">
+                      <i :class="category.icon"></i>
+                    </div>
+                    <p>{{ category.name }}</p>
+                  </div>
+                </div>
               </div>
-              <p>{{ category.name }}</p>
+            </div>
+          </div>
+
+
+          <!-- 右侧 -->
+          <div class="right-panel">
+            <!-- 热门借阅 -->
+            <div class="hot-books-section ancient-section">
+              <h3 class="ancient-title">
+                <img src="../../assets/image/icons/hot.png" class="title-icon" /> 热门借阅
+              </h3>
+
+              <!-- 加载状态 -->
+              <div v-if="hotBooksLoading" class="loading-container">
+                <el-skeleton :rows="2" animated />
+              </div>
+
+              <!-- 有数据时显示 -->
+              <div v-else-if="hotBooks.length > 0">
+                <el-row :gutter="20" type="flex" justify="start">
+                  <el-col :xs="12" :sm="6" v-for="book in hotBooks" :key="book.id">
+                    <el-card class="book-card ancient-card" shadow="hover">
+                      <div class="book-cover ancient-cover">
+                        <i class="el-icon-notebook-2"></i>
+                      </div>
+                      <div class="book-info">
+                        <h4>{{ book.title }}</h4>
+                        <p class="author">{{ book.author }}</p>
+                        <div class="book-meta">
+                          <span class="category">{{ book.category }}</span>
+                          <span class="available">{{ book.available }} 本可借</span>
+                        </div>
+                        <el-button type="primary" size="small" class="ancient-btn" @click="viewBookDetail(book.id)">
+                          查看详情
+                        </el-button>
+                      </div>
+                    </el-card>
+                  </el-col>
+                </el-row>
+              </div>
+
+              <!-- 无数据时显示 -->
+              <div v-else class="empty-container">
+                <el-empty description="暂无热门图书"></el-empty>
+              </div>
+            </div>
+
+
+            <!-- 快速入口 -->
+            <div class="quick-actions ancient-section">
+              <h3 class="ancient-title">
+                <img src="../../assets/image/icons/quick.png" class="title-icon" /> 快速入口
+              </h3>
+              <el-row :gutter="20">
+                <el-col :span="8">
+                  <div class="action-item ancient-item" @click="$router.push('/user/books')">
+                    <div class="action-icon ancient-icon">
+                      <i class="el-icon-search"></i>
+                    </div>
+                    <p>查找图书</p>
+                  </div>
+                </el-col>
+                <el-col :span="8">
+                  <div class="action-item ancient-item" @click="$router.push('/user/borrow')">
+                    <div class="action-icon ancient-icon">
+                      <i class="el-icon-collection"></i>
+                    </div>
+                    <p>我的借阅</p>
+                  </div>
+                </el-col>
+                <el-col :span="8">
+                  <div class="action-item ancient-item" @click="$router.push('/user/personal')">
+                    <div class="action-icon ancient-icon">
+                      <i class="el-icon-user"></i>
+                    </div>
+                    <p>个人中心</p>
+                  </div>
+                </el-col>
+              </el-row>
             </div>
           </div>
         </div>
-      </div>
-    </div>
-
-
-    <!-- 右侧 -->
-    <div class="right-panel">
-      <!-- 热门借阅 -->
-      <div class="hot-books-section ancient-section">
-  <h3 class="ancient-title">
-    <img src="../../assets/image/icons/hot.png" class="title-icon" /> 热门借阅
-  </h3>
-  <el-row :gutter="20" type="flex" justify="start">
-    <el-col :span="6" v-for="book in hotBooks" :key="book.id">
-      <el-card class="book-card ancient-card" shadow="hover">
-        <div class="book-cover ancient-cover">
-          <i class="el-icon-notebook-2"></i>
-        </div>
-        <div class="book-info">
-          <h4>{{ book.title }}</h4>
-          <p class="author">{{ book.author }}</p>
-          <div class="book-meta">
-            <span class="category">{{ book.category }}</span>
-            <span class="available">{{ book.available }} 本可借</span>
-          </div>
-          <el-button type="primary" size="small" class="ancient-btn" @click="viewBookDetail(book.id)">
-            查看详情
-          </el-button>
-        </div>
-      </el-card>
-    </el-col>
-  </el-row>
-</div>
-
-
-      <!-- 快速入口 -->
-      <div class="quick-actions ancient-section">
-        <h3 class="ancient-title">
-          <img src="../../assets/image/icons/quick.png" class="title-icon" /> 快速入口
-        </h3>
-        <el-row :gutter="20">
-          <el-col :span="8">
-            <div class="action-item ancient-item" @click="$router.push('/user/books')">
-              <div class="action-icon ancient-icon">
-                <i class="el-icon-search"></i>
-              </div>
-              <p>查找图书</p>
-            </div>
-          </el-col>
-          <el-col :span="8">
-            <div class="action-item ancient-item" @click="$router.push('/user/borrow')">
-              <div class="action-icon ancient-icon">
-                <i class="el-icon-collection"></i>
-              </div>
-              <p>我的借阅</p>
-            </div>
-          </el-col>
-          <el-col :span="8">
-            <div class="action-item ancient-item" @click="$router.push('/user/personal')">
-              <div class="action-icon ancient-icon">
-                <i class="el-icon-user"></i>
-              </div>
-              <p>个人中心</p>
-            </div>
-          </el-col>
-        </el-row>
-      </div>
-    </div>
-  </div>
-</el-main>
+      </el-main>
 
     </el-container>
   </div>
@@ -260,14 +265,17 @@ export default {
       searchQuery: '',
       searchTips: ['红楼梦', '三国演义', 'JavaScript', '历史', '人类'],
 
+
+      hotBooks: [],
+      hotBooksLoading: false, // 新增：加载状态
       // 分类数据
       categories: [
         { id: 1, name: '文学', icon: 'el-icon-reading', color: '#ff6b6b' },
-        { id: 2, name: '历史', icon: 'el-icon-time', color: '#48dbfb' },
-        { id: 3, name: '科学', icon: 'el-icon-set-up', color: '#1dd1a1' },
-        { id: 4, name: '技术', icon: 'el-icon-cpu', color: '#feca57' },
-        { id: 5, name: '教育', icon: 'el-icon-school', color: '#ff9ff3' },
-        { id: 6, name: '艺术', icon: 'el-icon-picture', color: '#f368e0' }
+        { id: 2, name: '科技', icon: 'el-icon-cpu', color: '#1dd1a1' },
+        { id: 3, name: '历史', icon: 'el-icon-time', color: '#48dbfb' },
+        { id: 4, name: '哲学', icon: 'el-icon-thumb', color: '#9c88ff' },
+        { id: 5, name: '艺术', icon: 'el-icon-picture', color: '#f368e0' },
+        { id: 6, name: '教育', icon: 'el-icon-school', color: '#ff9ff3' }
       ],
       fixedBooks: [
         { id: 1, title: '《罪与罚》', desc: '[俄] 陀思妥耶夫斯基 著 · 西方文学经典之作，心理描写的巅峰', img: require('../../assets/image/books/1.jpg'), left: '51%', bottom: '-10%', width: '8%', labelLeft: '53%', labelTop: '116%' },
@@ -363,7 +371,7 @@ export default {
         '旅行': 9,
         '其他': 10
       }
-      
+
       // 如果是分类名，跳转到分类筛选
       if (categoryMap[keyword]) {
         this.handleCategoryClick(categoryMap[keyword])
@@ -376,26 +384,84 @@ export default {
 
     // 新增方法：获取热门图书
     async fetchHotBooks() {
+      this.hotBooksLoading = true
       try {
-        // 调用API获取前4本热门图书（这里简单取前4本有库存的图书）
-        const res = await bookApi.getBooks({
-          page: 1,
-          size: 4,
-          availableOnly: true
-        })
+        console.log('开始获取热门图书...')
 
-        if (res.code === 200 && res.data.list.length > 0) {
-          // 转换数据格式
-          this.hotBooks = res.data.list.map(book => ({
-            id: book.id,
-            title: book.title,
-            author: book.author,
-            category: this.getCategoryName(book.category),
-            available: book.availableCopies
+        // 尝试调用API获取图书列表
+        let response
+        try {
+          // 调用API获取图书列表，按借阅次数或其他热门指标排序
+          response = await bookApi.getBooks({
+            page: 1,
+            size: 8, // 获取8本，确保有足够的选择
+            availableOnly: true
+          })
+
+          console.log('热门图书API响应:', response)
+        } catch (apiError) {
+          console.error('调用图书API失败:', apiError)
+          // 使用模拟数据
+          this.useMockHotBooks()
+          return
+        }
+
+        // 处理响应数据
+        const res = response.data || response
+
+        if (res && res.code === 200) {
+          let books = []
+
+          // 解析图书列表数据
+          if (res.data && Array.isArray(res.data.list)) {
+            books = res.data.list
+          } else if (Array.isArray(res.data)) {
+            books = res.data
+          } else if (res.data && Array.isArray(res.data.content)) {
+            books = res.data.content
+          } else {
+            books = res.data || []
+          }
+
+          console.log('获取到的图书列表:', books)
+
+          if (books.length === 0) {
+            // 如果没有数据，使用模拟数据
+            this.useMockHotBooks()
+            return
+          }
+
+          // 筛选出有库存的图书，并按某种规则排序（比如库存少的热门，或者随机）
+          const availableBooks = books.filter(book =>
+            (book.availableCopies || book.available || book.stock || 0) > 0
+          )
+
+          // 随机选择4本作为热门图书
+          const randomBooks = [...availableBooks]
+            .sort(() => Math.random() - 0.5)
+            .slice(0, 4)
+
+          // 转换为需要的格式
+          this.hotBooks = randomBooks.map(book => ({
+            id: book.id || 0,
+            title: book.title || '未知图书',
+            author: book.author || '未知作者',
+            category: this.getCategoryName(book.category || book.categoryCode || book.type || '其他'),
+            available: book.availableCopies || book.available || book.stock || 0
           }))
+
+          console.log('热门图书数据:', this.hotBooks)
+
+        } else {
+          // API返回错误，使用模拟数据
+          this.useMockHotBooks()
         }
       } catch (error) {
         console.error('获取热门图书失败:', error)
+        // 使用模拟数据
+        this.useMockHotBooks()
+      } finally {
+        this.hotBooksLoading = false
       }
     },
 
@@ -867,7 +933,7 @@ button {
   left: 50%;
   width: 280px;
   background: linear-gradient(rgb(255, 254, 252),
-  rgb(255, 254, 252,0.9));
+      rgb(255, 254, 252, 0.9));
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
@@ -913,7 +979,7 @@ button {
   color: #333;
   margin: 0 0 8px 0;
   line-height: 1.3;
-  text-align: center; 
+  text-align: center;
 }
 
 .aYZxtXZE {
@@ -1044,12 +1110,14 @@ h2 {
   justify-content: space-between;
   height: 100%;
 }
-.logo{
+
+.logo {
   margin: 2px 20px;
 }
 
 .logo-img {
-  width: 25px;  /* 根据你的图标调整 */
+  width: 25px;
+  /* 根据你的图标调整 */
   height: 25px;
   margin-right: 20px;
   vertical-align: middle;
@@ -1077,12 +1145,14 @@ h2 {
 /* 用户信息区域样式 */
 .user-info .el-dropdown-link {
   cursor: pointer;
-  color: #8b7355; /* 深棕色，与古籍风格一致 */
+  color: #8b7355;
+  /* 深棕色，与古籍风格一致 */
   display: flex;
   align-items: center;
   padding: 8px 16px;
   border-radius: 20px;
-  background: rgba(250, 248, 245, 0.9); /* 半透明米白背景 */
+  background: rgba(250, 248, 245, 0.9);
+  /* 半透明米白背景 */
   border: 1px solid #e8d4b8;
   transition: all 0.3s;
   font-family: "STKaiti", "KaiTi", serif;
@@ -1097,7 +1167,8 @@ h2 {
 
 .user-info .el-dropdown-link i {
   margin-right: 6px;
-  color: #a7874b; /* 图标使用金色 */
+  color: #a7874b;
+  /* 图标使用金色 */
 }
 
 .user-info .el-dropdown-link .el-icon-arrow-down {
@@ -1122,9 +1193,9 @@ h2 {
 .user-main {
 
   background-image: url('../../assets/image/home2.jpg') !important;
-  
+
   background-size: 110% 110% !important;
-  background-position: center ;
+  background-position: center;
   background-repeat: no-repeat;
   background: #f9f4ee;
   /* 淡米色背景，仿古纸张感 */
@@ -1135,7 +1206,7 @@ h2 {
 
 .quick-actions.ancient-section {
   /* 添加以下属性 */
-   background: rgba(255, 254, 253, 0.6);
+  background: rgba(255, 254, 253, 0.6);
 }
 
 .welcome-section {
@@ -1182,7 +1253,8 @@ h2 {
 /* 左侧分类固定宽度 */
 /* 左侧面板 */
 .left-panel {
-  width: 280px; /* 可根据需求调整 */
+  width: 280px;
+  /* 可根据需求调整 */
   padding-right: 20px;
   box-sizing: border-box;
 }
@@ -1190,7 +1262,7 @@ h2 {
 /* 分类整体样式 */
 .categories-section.ancient-section {
   padding: 20px;
-  
+
 }
 
 /* 分类项左右交替排列 */
@@ -1210,7 +1282,8 @@ h2 {
 .category-list {
   display: flex;
   flex-direction: column;
-  gap: 20px; /* 上下间距 */
+  gap: 20px;
+  /* 上下间距 */
 }
 
 .category-item-wrapper {
@@ -1219,30 +1292,34 @@ h2 {
 
 .category-item.left {
   margin-right: auto;
-  border-radius: 16px; /* 更圆角 */
+  border-radius: 16px;
+  /* 更圆角 */
 }
 
 .category-item.right {
   margin-left: auto;
-  border-radius: 16px; /* 更圆角 */
+  border-radius: 16px;
+  /* 更圆角 */
 }
 
 /* 默认悬停效果 */
 .category-item.ancient-item:hover {
   background: #f2f0ec;
   transform: translateY(-3px);
-  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
   transition: all 0.3s;
 }
 
 /* 左边（奇数项）悬停往右移动 */
 .category-item.ancient-item.left:hover {
-  transform:  translateX(20px); /* 往右 */
+  transform: translateX(20px);
+  /* 往右 */
 }
 
 /* 右边（偶数项）悬停往左移动 */
 .category-item.ancient-item.right:hover {
-  transform: translateX(-20px); /* 往左 */
+  transform: translateX(-20px);
+  /* 往左 */
 }
 
 /* 偶数项左右反转（可选视觉效果） */
@@ -1262,7 +1339,7 @@ h2 {
   font-size: 22px;
   color: #888;
   background: #fffffe;
-  box-shadow: inset 0 -2px 3px rgba(0,0,0,0.03);
+  box-shadow: inset 0 -2px 3px rgba(0, 0, 0, 0.03);
 }
 
 /* 分类文字 */
@@ -1289,18 +1366,18 @@ h2 {
 }
 
 .hot-books-section .ancient-card {
-  height: 260px; /* 缩小卡片高度 */
+  height: 260px;
+  /* 缩小卡片高度 */
   padding: 10px;
 }
 
 .hot-books-section .ancient-cover {
   width: 70px;
   height: 80px;
+  font-size: 26px;
+  margin: auto;
 }
 
-.hot-books-section .ancient-cover i {
-  font-size: 26px;
-}
 
 .hot-books-section .book-info h4 {
   font-size: 14px;
@@ -1325,7 +1402,8 @@ h2 {
 /* 保证四列不换行 */
 .hot-books-section .el-row {
   flex-wrap: nowrap;
-  overflow-x: auto; /* 屏幕过窄可滚动 */
+  overflow-x: auto;
+  /* 屏幕过窄可滚动 */
 }
 
 .hot-books-section .el-col {
@@ -1402,17 +1480,18 @@ h2 {
 
 /* 卡片区域背景 */
 .ancient-section {
-  background: linear-gradient(
-      to bottom right,
+  background: linear-gradient(to bottom right,
       rgba(255, 254, 251, 0.9),
-      rgba(255, 255, 254, 0.1)
-  ); /* 淡米白渐变，半透明 */
-  backdrop-filter: blur(4px); /* 背景轻微模糊，增加层次感 */
+      rgba(255, 255, 254, 0.1));
+  /* 淡米白渐变，半透明 */
+  backdrop-filter: blur(4px);
+  /* 背景轻微模糊，增加层次感 */
   padding: 50px;
   border-radius: 10px;
   margin-bottom: 40px;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
-  border: 1px solid rgba(238, 238, 238, 0.6); /* 半透明边框 */
+  border: 1px solid rgba(238, 238, 238, 0.6);
+  /* 半透明边框 */
   position: relative;
   transition: all 0.3s;
 }
@@ -1448,7 +1527,7 @@ h2 {
   width: 25px;
   height: 25px;
   margin-right: 6px;
-  margin-bottom:6px ;
+  margin-bottom: 6px;
   vertical-align: middle;
 }
 
@@ -1581,7 +1660,7 @@ h2 {
 .quick-actions .action-item.ancient-item {
   background: rgba(250, 248, 245, 0.85) !important;
   backdrop-filter: blur(10px);
-  box-shadow: 
+  box-shadow:
     0 8px 32px rgba(155, 135, 110, 0.15),
     0 4px 8px rgba(155, 135, 110, 0.08),
     inset 0 1px 2px rgba(255, 255, 255, 0.8);
@@ -1617,7 +1696,7 @@ h2 {
   align-items: center;
   justify-content: center;
   background: #eee;
-  box-shadow: inset 0 -2px 3px rgba(0,0,0,0.03);
+  box-shadow: inset 0 -2px 3px rgba(0, 0, 0, 0.03);
 }
 
 .quick-actions p {

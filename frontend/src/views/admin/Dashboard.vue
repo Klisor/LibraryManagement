@@ -7,14 +7,8 @@
           <img src="@/assets/image/icons/book1.png" alt="图书管理系统" class="logo-img">
           <h3>知行书阁（后台）</h3>
         </div>
-        <el-menu
-          :default-active="$route.path"
-          background-color="#f9f7f3"
-          text-color="#5b4636"
-          active-text-color="#a7874b"
-          :router="true"
-          class="ancient-menu"
-        >
+        <el-menu :default-active="$route.path" background-color="#f9f7f3" text-color="#5b4636"
+          active-text-color="#a7874b" :router="true" class="ancient-menu">
           <el-menu-item index="/admin">
             <i class="el-icon-s-home"></i>
             <span>仪表板</span>
@@ -33,7 +27,7 @@
           </el-menu-item>
         </el-menu>
       </el-aside>
-      
+
       <!-- 主内容区 -->
       <el-container>
         <!-- 顶部导航栏 - 古籍风格 -->
@@ -52,7 +46,7 @@
             </el-dropdown>
           </div>
         </el-header>
-        
+
         <!-- 内容区 -->
         <el-main class="ancient-main">
           <div class="dashboard-content">
@@ -61,16 +55,8 @@
                 <h2 class="ancient-title">仪表板</h2>
                 <p class="ancient-subtitle">系统概览与统计数据</p>
               </div>
-              <el-button 
-                type="primary" 
-                icon="el-icon-s-home" 
-                @click="goToUserHome"
-                class="ancient-btn home-btn"
-              >
-                用户首页
-              </el-button>
             </div>
-            
+
             <!-- 统计卡片 - 古籍风格 -->
             <el-row :gutter="20" class="stats-section ancient-section">
               <el-col :xs="12" :sm="6">
@@ -126,7 +112,7 @@
                 </el-card>
               </el-col>
             </el-row>
-            
+
             <!-- 系统概览 -->
             <div class="overview-section ancient-section">
               <h3 class="section-title ancient-title">
@@ -135,26 +121,26 @@
               <el-row :gutter="20">
                 <el-col :span="12">
                   <div class="overview-item">
-                    <div class="overview-label">系统版本</div>
-                    <div class="overview-value">v1.2.0</div>
+                    <div class="overview-label">用户总数</div>
+                    <div class="overview-value">{{ stats.userCount }} 人</div>
                   </div>
                   <div class="overview-item">
-                    <div class="overview-label">今日访问</div>
-                    <div class="overview-value">{{ stats.todayVisits || 0 }} 次</div>
+                    <div class="overview-label">图书总数</div>
+                    <div class="overview-value">{{ stats.bookCount }} 本</div>
                   </div>
                   <div class="overview-item">
-                    <div class="overview-label">本月新增用户</div>
-                    <div class="overview-value">{{ stats.monthNewUsers || 0 }} 人</div>
+                    <div class="overview-label">当前借阅</div>
+                    <div class="overview-value">{{ stats.currentBorrow }} 本</div>
                   </div>
                 </el-col>
                 <el-col :span="12">
                   <div class="overview-item">
-                    <div class="overview-label">本月借阅量</div>
-                    <div class="overview-value">{{ stats.monthBorrows || 0 }} 次</div>
+                    <div class="overview-label">逾期借阅</div>
+                    <div class="overview-value">{{ stats.overdueCount }} 本</div>
                   </div>
                   <div class="overview-item">
                     <div class="overview-label">图书借阅率</div>
-                    <div class="overview-value">{{ stats.borrowRate || '0%' }}</div>
+                    <div class="overview-value">{{ stats.borrowRate }}</div>
                   </div>
                   <div class="overview-item">
                     <div class="overview-label">系统状态</div>
@@ -165,7 +151,7 @@
                 </el-col>
               </el-row>
             </div>
-            
+
             <!-- 快速操作 - 古籍风格 -->
             <div class="quick-actions-section ancient-section">
               <h3 class="section-title ancient-title">
@@ -184,7 +170,8 @@
                   </el-card>
                 </el-col>
                 <el-col :xs="12" :sm="6">
-                  <el-card shadow="hover" class="action-card ancient-card" @click.native="$router.push('/admin/borrow')">
+                  <el-card shadow="hover" class="action-card ancient-card"
+                    @click.native="$router.push('/admin/borrow')">
                     <div class="action-content">
                       <div class="action-icon">
                         <i class="el-icon-circle-plus"></i>
@@ -218,7 +205,7 @@
                 </el-col>
               </el-row>
             </div>
-            
+
             <!-- 最近活动 -->
             <div class="recent-activities ancient-section">
               <h3 class="section-title ancient-title">
@@ -248,71 +235,448 @@
 </template>
 
 <script>
+import { dashboardApi } from '@/api/dashboard'
+
 export default {
   name: 'AdminDashboard',
   data() {
     return {
       user: JSON.parse(localStorage.getItem('user') || '{}'),
       stats: {
-        userCount: 100,
-        bookCount: 500,
-        currentBorrow: 50,
-        overdueCount: 5,
-        todayVisits: 128,
-        monthNewUsers: 15,
-        monthBorrows: 256,
-        borrowRate: '75%'
+        userCount: 0,
+        bookCount: 0,
+        currentBorrow: 0,
+        overdueCount: 0,
+        todayVisits: 0,
+        monthNewUsers: 0,
+        monthBorrows: 0,
+        borrowRate: '0%'
       },
-      recentActivities: [
-        {
-          id: 1,
-          icon: 'el-icon-user',
-          title: '新用户注册',
-          description: '用户"李四"完成了注册',
-          time: '10分钟前'
-        },
-        {
-          id: 2,
-          icon: 'el-icon-notebook-2',
-          title: '图书借阅',
-          description: '《JavaScript高级程序设计》被借阅',
-          time: '30分钟前'
-        },
-        {
-          id: 3,
-          icon: 'el-icon-edit',
-          title: '图书信息更新',
-          description: '《红楼梦》库存信息已更新',
-          time: '1小时前'
-        },
-        {
-          id: 4,
-          icon: 'el-icon-time',
-          title: '借阅到期提醒',
-          description: '5本图书即将到期',
-          time: '2小时前'
-        }
-      ]
+      recentActivities: [], // 初始化为空数组
+      loading: false
     }
   },
   mounted() {
     if (!this.user.id || this.user.role !== 'ADMIN') {
       this.$router.push('/admin/login')
+      return
     }
     this.fetchDashboardStats()
+    this.fetchRecentActivities() // 新增：获取最近活动
   },
   methods: {
     // 获取仪表板统计数据
     async fetchDashboardStats() {
+      this.loading = true
       try {
-        // 这里可以调用API获取真实数据
-        // const res = await dashboardApi.getStats()
-        // this.stats = res.data
+        console.log('开始获取仪表板数据...')
+
+        // 检查dashboardApi是否正确导入
+        if (!dashboardApi || typeof dashboardApi.getDashboardStats !== 'function') {
+          console.log('使用模拟仪表板数据')
+          // 使用模拟数据
+          this.stats = {
+            userCount: 100,
+            bookCount: 500,
+            currentBorrow: 50,
+            overdueCount: 5,
+            todayVisits: 128,
+            monthNewUsers: 15,
+            monthBorrows: 256,
+            borrowRate: '75%'
+          }
+          return
+        }
+
+        const res = await dashboardApi.getDashboardStats()
+        console.log('仪表板数据响应:', res)
+
+        if (res && res.code === 200) {
+          this.stats = {
+            ...this.stats,
+            ...res.data
+          }
+          console.log('仪表板数据:', this.stats)
+        } else {
+          this.$message.warning(res?.message || '获取数据失败')
+        }
       } catch (error) {
         console.error('获取仪表板数据失败:', error)
+        // 使用模拟数据
+        this.stats = {
+          userCount: 100,
+          bookCount: 500,
+          currentBorrow: 50,
+          overdueCount: 5,
+          todayVisits: 128,
+          monthNewUsers: 15,
+          monthBorrows: 256,
+          borrowRate: '75%'
+        }
+      } finally {
+        this.loading = false
       }
     },
+
+    // 新增：获取最近活动（借阅记录）
+    // 新增：获取最近活动（借阅记录）
+// 新增：获取最近活动（借阅记录）
+async fetchRecentActivities() {
+  try {
+    console.log('开始获取最近活动...')
     
+    // 检查是否有borrowApi
+    let borrowApi = null
+    let bookApi = null
+    let userApi = null
+    
+    try {
+      borrowApi = require('@/api/borrow').borrowApi
+      bookApi = require('@/api/book').bookApi
+      userApi = require('@/api/user').userApi
+    } catch (e) {
+      console.warn('无法导入API，使用模拟活动数据')
+      this.recentActivities = this.getMockActivities()
+      return
+    }
+    
+    // 获取最近的借阅记录 - 首先尝试直接获取最新的记录
+    try {
+      // 方法1：直接获取所有记录然后排序取前5条
+      console.log('尝试方法1：获取所有记录然后排序...')
+      
+      // 先获取所有借阅记录
+      const allParams = {
+        page: 1,
+        size: 100, // 获取较多的记录
+        status: '' // 不筛选状态，获取所有记录
+      }
+      
+      const allResponse = await borrowApi.getBorrowRecords(allParams)
+      console.log('所有借阅记录响应:', allResponse)
+      
+      let allData = allResponse
+      if (allResponse && allResponse.data) {
+        allData = allResponse.data
+      }
+      
+      if (allData && allData.code === 200) {
+        // 获取所有记录数据
+        let allRecords = []
+        if (Array.isArray(allData.data)) {
+          allRecords = allData.data
+        } else if (allData.data && Array.isArray(allData.data.list)) {
+          allRecords = allData.data.list
+        } else if (allData.data && Array.isArray(allData.data.content)) {
+          allRecords = allData.data.content
+        } else {
+          allRecords = allData.data || []
+        }
+        
+        console.log('获取到的所有借阅记录数量:', allRecords.length)
+        
+        if (allRecords.length === 0) {
+          this.recentActivities = this.getMockActivities()
+          return
+        }
+        
+        // 按借阅日期降序排序（最新的在前）
+        const sortedRecords = allRecords.sort((a, b) => {
+          const dateA = a.borrowDate ? new Date(a.borrowDate).getTime() : 0
+          const dateB = b.borrowDate ? new Date(b.borrowDate).getTime() : 0
+          return dateB - dateA
+        })
+        
+        console.log('排序后的记录（前5条）:', sortedRecords.slice(0, 5))
+        
+        // 只取最新的5条记录
+        const latestRecords = sortedRecords.slice(0, 5)
+        
+        // 获取图书和用户信息
+        const activitiesWithDetails = await this.enrichActivitiesWithDetails(latestRecords)
+        
+        // 转换为活动格式
+        this.recentActivities = activitiesWithDetails.map((record, index) => {
+          // 格式化日期
+          const activityDate = record.borrowDate || record.createdAt || new Date().toISOString()
+          const timeAgo = this.getTimeAgo(activityDate)
+          
+          // 获取用户名和书名
+          const userName = record.userName || record.userRealName || record.user?.username || '用户'
+          const bookTitle = record.bookTitle || record.bookRealTitle || record.book?.title || '图书'
+          
+          // 根据状态确定活动类型
+          const status = record.status?.toUpperCase()
+          let activityType = '借阅'
+          if (status === 'RETURNED') {
+            activityType = '归还'
+          } else if (status === 'OVERDUE') {
+            activityType = '逾期'
+          }
+          
+          return {
+            id: record.id || index + 1,
+            icon: this.getActivityIcon(record.status),
+            title: `图书${activityType}`,
+            description: `用户"${userName}"${activityType}了《${bookTitle}》`,
+            time: timeAgo
+          }
+        })
+        
+        console.log('生成的最近活动:', this.recentActivities)
+        
+      } else {
+        throw new Error('获取借阅记录失败')
+      }
+      
+    } catch (error) {
+      console.error('获取最新借阅记录失败，尝试方法2:', error)
+      
+      // 方法2：如果方法1失败，使用模拟数据
+      this.recentActivities = this.getMockActivities()
+    }
+    
+  } catch (error) {
+    console.error('获取最近活动失败:', error)
+    // 使用模拟数据
+    this.recentActivities = this.getMockActivities()
+  }
+},
+
+    // 新增：丰富活动记录详细信息
+    async enrichActivitiesWithDetails(records) {
+      try {
+        // 提取唯一的图书ID和用户ID
+        const bookIds = [...new Set(records.map(record => record.bookId).filter(Boolean))]
+        const userIds = [...new Set(records.map(record => record.userId).filter(Boolean))]
+
+        console.log('需要获取的图书ID:', bookIds)
+        console.log('需要获取的用户ID:', userIds)
+
+        // 并行获取图书和用户信息
+        const [booksInfo, usersInfo] = await Promise.all([
+          this.fetchBooksInfo(bookIds),
+          this.fetchUsersInfo(userIds)
+        ])
+
+        console.log('获取到的图书信息:', booksInfo)
+        console.log('获取到的用户信息:', usersInfo)
+
+        // 丰富记录信息
+        return records.map(record => ({
+          ...record,
+          book: booksInfo.get(record.bookId),
+          user: usersInfo.get(record.userId),
+          // 使用获取到的信息，如果API返回了的话
+          userName: record.userName || usersInfo.get(record.userId)?.username,
+          bookTitle: record.bookTitle || booksInfo.get(record.bookId)?.title
+        }))
+
+      } catch (error) {
+        console.error('丰富活动记录信息失败:', error)
+        return records // 返回原始记录
+      }
+    },
+
+    // 新增：批量获取图书信息
+    async fetchBooksInfo(bookIds) {
+      if (!bookIds || bookIds.length === 0) {
+        return new Map()
+      }
+
+      try {
+        let bookApi = null
+        try {
+          bookApi = require('@/api/book').bookApi
+        } catch (e) {
+          console.warn('无法导入bookApi')
+          return new Map()
+        }
+
+        const bookPromises = bookIds.map(bookId =>
+          bookApi.getBookDetail(bookId).catch(error => {
+            console.error(`获取图书 ${bookId} 信息失败:`, error)
+            return null
+          })
+        )
+
+        const bookResponses = await Promise.all(bookPromises)
+
+        // 创建图书信息映射
+        const booksMap = new Map()
+
+        bookResponses.forEach((response, index) => {
+          const bookId = bookIds[index]
+          if (response) {
+            const res = response.data || response
+            if (res.code === 200 && res.data) {
+              booksMap.set(bookId, res.data)
+            }
+          }
+        })
+
+        return booksMap
+
+      } catch (error) {
+        console.error('批量获取图书信息失败:', error)
+        return new Map()
+      }
+    },
+
+    // 新增：批量获取用户信息
+    async fetchUsersInfo(userIds) {
+      if (!userIds || userIds.length === 0) {
+        return new Map()
+      }
+
+      try {
+        let userApi = null
+        try {
+          userApi = require('@/api/user').userApi
+        } catch (e) {
+          console.warn('无法导入userApi')
+          return new Map()
+        }
+
+        const userPromises = userIds.map(userId =>
+          userApi.getUserDetail(userId).catch(error => {
+            console.error(`获取用户 ${userId} 信息失败:`, error)
+            return null
+          })
+        )
+
+        const userResponses = await Promise.all(userPromises)
+
+        // 创建用户信息映射
+        const usersMap = new Map()
+
+        userResponses.forEach((response, index) => {
+          const userId = userIds[index]
+          if (response) {
+            const res = response.data || response
+            if (res.code === 200 && res.data) {
+              usersMap.set(userId, res.data)
+            }
+          }
+        })
+
+        return usersMap
+
+      } catch (error) {
+        console.error('批量获取用户信息失败:', error)
+        return new Map()
+      }
+    },
+
+// 新增：获取模拟活动数据
+getMockActivities() {
+  // 创建最近几天的模拟数据
+  const now = new Date()
+  return [
+    {
+      id: 1,
+      icon: 'el-icon-user',
+      title: '新用户注册',
+      description: '用户"王五"完成了注册',
+      time: '1小时前'
+    },
+    {
+      id: 2,
+      icon: 'el-icon-notebook-2',
+      title: '图书借阅',
+      description: '用户"张三"借阅了《红楼梦》',
+      time: '2小时前'
+    },
+    {
+      id: 3,
+      icon: 'el-icon-notebook-2',
+      title: '图书借阅',
+      description: '用户"李四"借阅了《JavaScript高级程序设计》',
+      time: '3小时前'
+    },
+    {
+      id: 4,
+      icon: 'el-icon-check',
+      title: '图书归还',
+      description: '用户"赵六"归还了《三国演义》',
+      time: '5小时前'
+    },
+    {
+      id: 5,
+      icon: 'el-icon-notebook-2',
+      title: '图书借阅',
+      description: '用户"钱七"借阅了《西游记》',
+      time: '1天前'
+    }
+  ]
+},
+
+// 新增：根据状态获取活动图标
+getActivityIcon(status) {
+  if (!status) return 'el-icon-notebook-2'
+  
+  const statusUpper = status.toUpperCase()
+  switch (statusUpper) {
+    case 'BORROWED':
+      return 'el-icon-notebook-2'
+    case 'RETURNED':
+      return 'el-icon-check'
+    case 'OVERDUE':
+      return 'el-icon-warning'
+    default:
+      return 'el-icon-notebook-2'
+  }
+},
+
+// 新增：根据状态获取活动标题
+getActivityTitle(status) {
+  if (!status) return '图书借阅'
+  
+  const statusUpper = status.toUpperCase()
+  switch (statusUpper) {
+    case 'BORROWED':
+      return '图书借阅'
+    case 'RETURNED':
+      return '图书归还'
+    case 'OVERDUE':
+      return '逾期借阅'
+    default:
+      return '图书借阅'
+  }
+},
+
+    // 新增：计算时间间隔（显示为"X分钟前"等）
+    getTimeAgo(dateString) {
+      if (!dateString) return '刚刚'
+
+      try {
+        const date = new Date(dateString)
+        const now = new Date()
+        const diffInMs = now - date
+
+        // 转换为分钟
+        const diffInMinutes = Math.floor(diffInMs / (1000 * 60))
+
+        if (diffInMinutes < 1) {
+          return '刚刚'
+        } else if (diffInMinutes < 60) {
+          return `${diffInMinutes}分钟前`
+        } else if (diffInMinutes < 24 * 60) {
+          const hours = Math.floor(diffInMinutes / 60)
+          return `${hours}小时前`
+        } else if (diffInMinutes < 7 * 24 * 60) {
+          const days = Math.floor(diffInMinutes / (24 * 60))
+          return `${days}天前`
+        } else {
+          // 超过一周，显示具体日期
+          return date.toLocaleDateString()
+        }
+      } catch (error) {
+        console.error('格式化时间失败:', error)
+        return '刚刚'
+      }
+    },
+
     // 处理下拉菜单命令
     handleCommand(command) {
       if (command === 'logout') {
@@ -321,13 +685,13 @@ export default {
         this.$message.info('管理员个人资料功能开发中')
       }
     },
-    
+
     // 退出登录
     logout() {
       localStorage.removeItem('user')
       this.$router.push('/admin/login')
     },
-    
+
     // 跳转到用户首页
     goToUserHome() {
       // 设置管理员以用户身份登录的标记
@@ -342,13 +706,17 @@ export default {
   }
 }
 </script>
-
 <style scoped>
 /* 导入全局样式 */
 @import '@/assets/ancient-form.css';
 
 /* 通用古籍字体 - 只用于标题 */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: "STKaiti", "KaiTi", serif;
 }
 
@@ -791,55 +1159,55 @@ h1, h2, h3, h4, h5, h6 {
   .el-aside {
     width: 60px !important;
   }
-  
+
   .logo h3 {
     display: none;
   }
-  
+
   .logo-img {
     margin-right: 0;
   }
-  
+
   .el-menu-item span {
     display: none;
   }
-  
+
   .el-menu-item i {
     margin-right: 0;
   }
-  
+
   .page-header {
     flex-direction: column;
     gap: 15px;
     align-items: flex-start;
   }
-  
+
   .home-btn {
     align-self: flex-start;
   }
-  
+
   .stat-content {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .stat-icon {
     margin-right: 0;
     margin-bottom: 10px;
   }
-  
+
   .overview-item {
     flex-direction: column;
     align-items: flex-start;
     gap: 5px;
   }
-  
+
   .activity-item {
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
   }
-  
+
   .activity-icon {
     margin-right: 0;
   }
@@ -849,20 +1217,20 @@ h1, h2, h3, h4, h5, h6 {
   .admin-header {
     padding: 0 10px;
   }
-  
+
   .admin-user-info .el-dropdown-link {
     padding: 6px 12px;
     font-size: 12px;
   }
-  
+
   .ancient-title {
     font-size: 20px;
   }
-  
+
   .ancient-section {
     padding: 15px 20px;
   }
-  
+
   .stat-info h3 {
     font-size: 24px;
   }
