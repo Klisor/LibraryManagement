@@ -1,9 +1,9 @@
 package com.zjgsu.librarymanagement.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.zjgsu.librarymanagement.exception.BusinessException;
 import com.zjgsu.librarymanagement.model.dto.BookDTO;
 import com.zjgsu.librarymanagement.model.dto.BookSearchRequest;
+import com.zjgsu.librarymanagement.model.dto.CategoryInfo;
 import com.zjgsu.librarymanagement.model.entity.Book;
 import com.zjgsu.librarymanagement.repository.BookRepository;
 import com.zjgsu.librarymanagement.repository.BorrowRecordRepository;
@@ -209,7 +209,16 @@ public class BookServiceImpl implements BookService {
     public Map<Integer, String> getCategories() {
         return CATEGORY_MAP;
     }
-
+    @Override
+    public List<CategoryInfo> getCategoryDetails() {
+        return CATEGORY_MAP.entrySet().stream().map(entry -> {
+            int categoryId = entry.getKey();
+            String categoryName = entry.getValue();
+            long bookCount = bookRepository.countByCategory(categoryId);
+            long borrowedCount = borrowRecordRepository.countBorrowingByCategory(categoryId);
+            return new CategoryInfo(categoryId, categoryName, bookCount, borrowedCount);
+        }).collect(Collectors.toList());
+    }
     @Override
     public boolean existsByIsbn(String isbn) {
         return bookRepository.existsByIsbn(isbn);

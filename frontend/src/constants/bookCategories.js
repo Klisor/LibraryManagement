@@ -14,6 +14,7 @@ export const BOOK_CATEGORIES = {
 
 // 分类下拉选项
 export const CATEGORY_OPTIONS = [
+  { value: null, label: '全部' },
   { value: 1, label: '文学' },
   { value: 2, label: '科技' },  // 修改这里
   { value: 3, label: '历史' },

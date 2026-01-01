@@ -45,4 +45,9 @@ public interface BookRepository extends JpaRepository<Book, Long> {
             "WHERE (:title IS NULL OR b.title LIKE CONCAT('%', :title, '%')) " +
             "AND b.availableCopies > 0")
     List<Book> searchAvailableBooksByTitle(@Param("title") String title);
+    // BookRepository
+    long countByCategory(int category);
+
+    // BorrowRecordRepository
+    long countBorrowingByCategory(int category);
 }

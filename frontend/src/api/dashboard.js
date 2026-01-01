@@ -29,6 +29,10 @@ const mockApi = {
 
 // 真实API - 修改为分别调用各个接口计算数据
 const realApi = {
+    async getCategories() {
+    const response= request.get('/books/categories')
+    return response
+  },
   // 获取仪表板统计数据
   async getDashboardStats() {
     try {

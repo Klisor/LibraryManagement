@@ -2,31 +2,7 @@
   <div class="admin-dashboard">
     <el-container style="height:100vh;">
       <!-- 侧边栏 - 古籍风格 -->
-      <el-aside width="200px">
-        <div class="logo">
-          <img src="@/assets/image/icons/book1.png" alt="图书管理系统" class="logo-img">
-          <h3>知行书阁（后台）</h3>
-        </div>
-        <el-menu :default-active="$route.path" background-color="#f9f7f3" text-color="#5b4636"
-          active-text-color="#a7874b" :router="true" class="ancient-menu">
-          <el-menu-item index="/admin">
-            <i class="el-icon-s-home"></i>
-            <span>仪表板</span>
-          </el-menu-item>
-          <el-menu-item index="/admin/users">
-            <i class="el-icon-user"></i>
-            <span>用户管理</span>
-          </el-menu-item>
-          <el-menu-item index="/admin/books">
-            <i class="el-icon-notebook-2"></i>
-            <span>图书管理</span>
-          </el-menu-item>
-          <el-menu-item index="/admin/borrow">
-            <i class="el-icon-document-copy"></i>
-            <span>借阅管理</span>
-          </el-menu-item>
-        </el-menu>
-      </el-aside>
+      <AdminAside />
 
       <!-- 主内容区 -->
       <el-container>
@@ -56,7 +32,15 @@
                 <p class="ancient-subtitle">系统概览与统计数据</p>
               </div>
             </div>
-
+            <!-- 日期区域 -->
+<div class="current-date ancient-section">
+  <h3 class="section-title ancient-title">
+    <i class="el-icon-date title-icon"></i> 当前日期与时间
+  </h3>
+  <div class="date-content">
+    <p class="date-text">{{ currentDate }}</p>
+  </div>
+</div>
             <!-- 统计卡片 - 古籍风格 -->
             <el-row :gutter="20" class="stats-section ancient-section">
               <el-col :xs="12" :sm="6">
@@ -236,35 +220,49 @@
 
 <script>
 import { dashboardApi } from '@/api/dashboard'
-
 export default {
   name: 'AdminDashboard',
-  data() {
-    return {
-      user: JSON.parse(localStorage.getItem('user') || '{}'),
-      stats: {
-        userCount: 0,
-        bookCount: 0,
-        currentBorrow: 0,
-        overdueCount: 0,
-        todayVisits: 0,
-        monthNewUsers: 0,
-        monthBorrows: 0,
-        borrowRate: '0%'
-      },
-      recentActivities: [], // 初始化为空数组
-      loading: false
-    }
-  },
-  mounted() {
-    if (!this.user.id || this.user.role !== 'ADMIN') {
-      this.$router.push('/admin/login')
-      return
-    }
-    this.fetchDashboardStats()
-    this.fetchRecentActivities() // 新增：获取最近活动
-  },
+data() {
+  return {
+    user: JSON.parse(localStorage.getItem('user') || '{}'),
+    stats: {
+      userCount: 0,
+      bookCount: 0,
+      currentBorrow: 0,
+      overdueCount: 0,
+      todayVisits: 0,
+      monthNewUsers: 0,
+      monthBorrows: 0,
+      borrowRate: '0%'
+    },
+    recentActivities: [], // 初始化为空数组
+    loading: false,
+    currentDate: '' // 添加当前日期属性
+  }
+},
+mounted() {
+  if (!this.user.id || this.user.role !== 'ADMIN') {
+    this.$router.push('/admin/login')
+    return
+  }
+  this.fetchDashboardStats()
+  this.fetchRecentActivities() // 新增：获取最近活动
+  this.setCurrentDate() // 设置当前日期
+  setInterval(this.setCurrentDate, 1000); // 每秒更新时间
+},
   methods: {
+setCurrentDate() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+
+  // 格式化为“YYYY年MM月DD日 HH:MM:SS”格式
+  this.currentDate = `${year}年${month}月${day}日 ${hours}:${minutes}:${seconds}`;
+},
     // 获取仪表板统计数据
     async fetchDashboardStats() {
       this.loading = true
@@ -740,72 +738,30 @@ h6 {
   background: rgba(255, 255, 255, 0.9);
   z-index: -1;
 }
-
-/* 侧边栏样式 */
-.el-aside {
-  background: rgba(255, 254, 251, 0.95) !important;
-  border-right: 1px solid #e8d4b8;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+.current-date {
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  padding: 25px 30px;
+  margin-bottom: 30px;
+  border: 1px solid #e8d4b8;
+  box-shadow: 0 4px 12px rgba(155, 135, 110, 0.1);
+  text-align: center; /* 居中对齐 */
 }
 
-/* 侧边栏logo */
-.logo {
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px;
-  border-bottom: 1px solid #e8d4b8;
-  background: rgba(245, 240, 230, 0.8);
+.date-content {
+  display: inline-block; /* 使内容居中 */
+  padding: 20px;
+  background: rgba(250, 248, 245, 0.9); /* 添加背景色 */
+  border-radius: 10px; /* 添加圆角 */
+  box-shadow: 0 4px 8px rgba(155, 135, 110, 0.1); /* 添加阴影 */
 }
 
-.logo-img {
-  width: 25px;
-  height: 25px;
-  margin-right: 10px;
-}
-
-.logo h3 {
+.date-text {
   color: #5b4636;
-  font-family: "STKaiti", "KaiTi", serif;
-  font-size: 18px;
+  font-size: 36px; /* 放大字体 */
+  /* text-shadow: 0px 2px 5px rgba(0, 0, 0, 0.5); */
+  font-weight: bold;
   margin: 0;
-  font-weight: bold;
-}
-
-/* 侧边栏菜单 */
-.ancient-menu {
-  border-right: none !important;
-  padding: 10px 0;
-}
-
-.el-menu-item {
-  height: 50px;
-  line-height: 50px;
-  font-size: 14px;
-  transition: all 0.3s;
-  margin: 5px 10px;
-  border-radius: 8px;
-}
-
-.el-menu-item:hover {
-  background: rgba(232, 212, 184, 0.2) !important;
-}
-
-.el-menu-item.is-active {
-  background: linear-gradient(135deg, rgba(167, 135, 75, 0.1), rgba(139, 115, 85, 0.1)) !important;
-  border-left: 3px solid #a7874b !important;
-  color: #5b4636 !important;
-  font-weight: bold;
-}
-
-.el-menu-item i {
-  color: #8b7355;
-  font-size: 16px;
-}
-
-.el-menu-item.is-active i {
-  color: #a7874b;
 }
 
 /* 顶部导航栏 */

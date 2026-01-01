@@ -5,7 +5,7 @@ spring:
     enabled: false
   web:
     cors:
-      allowed-origins: "http://localhost:8080,http://localhost:3000"
+      allowed-origins: "http://localhost:8081,http://localhost:3000"
       allowed-methods: "GET,POST,PUT,DELETE,OPTIONS"
       allowed-headers: "*"
       allow-credentials: true
@@ -59,16 +59,26 @@ mybatis-plus:
       logic-delete-field: deleted
       logic-delete-value: 1
       logic-not-delete-value: 0
+ai:
+  apiKey: "a4e45feb-0218-4cc0-839b-ef7dc33d03d2"
+  baseUrl: "https://ark.cn-beijing.volces.com/api/v3/"
+  botId: "bot-20251212101211-mxjmz"
+  max-tokens: 2000
+  temperature: 0.7
 
 # ????
 app:
   jwt:
     secret: library-management-secret-key-2024
-    expiration: 8640000 # 24??
+    expiration: 86400 # 24??
   borrow:
     default-days: 30 # ??????
     renew-days: 15   # ????
     max-renew-count: 1 # ??????
+  ai:
+    enable: true
+    max-history-size: 50
+    rate-limit: 10  # 每分钟最大请求数
 
 # ?????
 server:

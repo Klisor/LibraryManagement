@@ -186,7 +186,15 @@
         <el-form-item label="邮箱" prop="email">
           <el-input v-model="profileForm.email" placeholder="请输入邮箱"></el-input>
         </el-form-item>
-
+<!-- 修改密码 -->
+<el-form-item label="新密码" prop="password">
+  <el-input
+    v-model="profileForm.password"
+    placeholder="请输入新密码"
+    type="password"
+    show-password
+  ></el-input>
+</el-form-item>
         <!-- 当前借阅数：只读 -->
         <el-form-item label="当前借阅">
           <el-input-number v-model="user.borrowedCount" disabled controls-position="right"></el-input-number>
@@ -325,9 +333,14 @@ export default {
       // 个人信息编辑
       editProfileDialogVisible: false,
       profileForm: {
+          password: '',
         email: ''
       },
       profileRules: {
+        password: [
+  { required: false, message: '请输入新密码', trigger: 'blur' },
+  { min: 6, max: 20, message: '密码长度在6-20个字符之间', trigger: 'blur' }
+],
         email: [
           { required: true, message: '请输入邮箱', trigger: 'blur' },
           { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' }
@@ -673,7 +686,10 @@ export default {
         if (this.profileForm.email && this.profileForm.email.trim() !== this.user.email) {
           updateData.email = this.profileForm.email.trim()
         }
-
+        // 如果用户输入了新密码，则添加到更新数据中
+        if (this.profileForm.password) {
+          updateData.password = this.profileForm.password
+        }
         // 如果没有需要更新的字段，直接返回
         if (Object.keys(updateData).length === 0) {
           this.$message.info('没有需要更新的内容')
@@ -686,7 +702,7 @@ export default {
         const response = await userApi.updateUser(this.user.id, updateData)
 
         // 更新成功后处理
-        this.$message.success('邮箱更新成功')
+        this.$message.success('更新成功')
         this.editProfileDialogVisible = false
 
         // 更新本地用户信息中的邮箱

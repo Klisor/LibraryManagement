@@ -1,6 +1,7 @@
 package com.zjgsu.librarymanagement.service;
 import com.zjgsu.librarymanagement.model.dto.BookDTO;
 import com.zjgsu.librarymanagement.model.dto.BookSearchRequest;
+import com.zjgsu.librarymanagement.model.dto.CategoryInfo;
 
 import java.util.List;
 import java.util.Map;
@@ -30,4 +31,6 @@ public interface BookService {
 
     // 统计
     Long getTotalBooks();
+
+    List<CategoryInfo> getCategoryDetails();
 }

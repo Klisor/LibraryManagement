@@ -37,4 +37,7 @@ public interface BorrowRecordRepository extends JpaRepository<BorrowRecord, Long
 
     @Select("SELECT COUNT(*) FROM borrow_records WHERE user_id = #{userId} AND status = 'BORROWED'")
     Long countBorrowingByUserId(@Param("userId") Long userId);
+
+    @Query("SELECT COUNT(br) FROM BorrowRecord br JOIN br.book b WHERE b.category = :categoryId AND br.status IN ('BORROWED', 'RETURNED', 'OVERDUE')")
+    Long countBorrowingByCategory(@Param("categoryId") int categoryId);
 }

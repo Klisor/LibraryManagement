@@ -34,7 +34,7 @@
         </div>
       </el-header>
 
-
+          <AIAssistant />
 
 
 
@@ -211,8 +211,6 @@
                 <el-empty description="暂无热门图书"></el-empty>
               </div>
             </div>
-
-
             <!-- 快速入口 -->
             <div class="quick-actions ancient-section">
               <h3 class="ancient-title">
@@ -258,7 +256,9 @@ import { bookApi } from '@/api/book'
 import BookDetail from '@/components/BookDetail.vue'
 export default {
   name: 'UserHome',
-  components: { BookDetail },
+  components: { 
+    BookDetail
+   },
   data() {
     return {
       activeNav: 'home',
@@ -1727,5 +1727,11 @@ h2 {
   color: #666;
   background: #eee;
   box-shadow: inset 0 -2px 3px rgba(0, 0, 0, 0.03);
+}
+.book-card {
+  z-index: 1;
+}
+.ai-assistant {
+  z-index: 10000;
 }
 </style>

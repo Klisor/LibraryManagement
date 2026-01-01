@@ -1,7 +1,7 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
 import UserManagement from '@/views/admin/UserManagement.vue'
-
+import CategoryManagement from '@/views/admin/CategoryManagement.vue'
 Vue.use(VueRouter)
 
 const routes = [
@@ -35,6 +35,11 @@ const routes = [
     path: '/admin/borrow',
     name: 'BorrowManagement',
     component: () => import('@/views/admin/BorrowManagement.vue'),
+    meta: { requiresAuth: true, role: 'ADMIN' }
+  },  {
+    path: '/admin/back',
+    name: 'BackManagement',
+    component: () => import('@/views/admin/BorrowManagement2.vue'),
     meta: { requiresAuth: true, role: 'ADMIN' }
   },
   {
@@ -72,7 +77,13 @@ const routes = [
     name: 'Personal',
     component: () => import('@/views/user/Personal.vue'),
     meta: { requiresAuth: true, role: 'USER' }
-  }
+  },{
+    path: '/admin/categories', 
+    name: 'CategoryManagement',
+    component: CategoryManagement,
+    meta: { requiresAuth: true, role: 'ADMIN' }
+  },
+  
 ]
 
 const router = new VueRouter({

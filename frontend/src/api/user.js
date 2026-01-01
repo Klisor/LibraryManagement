@@ -274,6 +274,7 @@ const realUserApi = {
   
   // 更新用户信息
   async updateUser(userId, userData) {
+    console.log(userData)
     // 根据设计文档，只允许更新 email 和 maxBorrowCount
     const allowedData = {}
     
@@ -295,19 +296,23 @@ const realUserApi = {
       }
       allowedData.maxBorrowCount = maxBorrowCount
     }
+    if(userData.password){
+      allowedData.password=userData.password
+    }
     
     // 如果没有任何允许更新的字段，返回错误
     if (Object.keys(allowedData).length === 0) {
       return Promise.reject(new Error('没有提供可更新的字段'))
     }
     
-    console.log('发送更新数据:', allowedData)
+    console.log('allowed发送更新数据:', allowedData)
     
     // 特殊处理：由于后端权限逻辑有bug（普通用户无法更新自己），
     // 我们先尝试正常调用，如果返回403，尝试其他方式
     
     try {
       // 正常调用
+      console.log("diaoyong")
       return await request.put(`/users/${userId}`, allowedData)
     } catch (error) {
       // 如果是403错误，尝试特殊处理

@@ -2,6 +2,7 @@ package com.zjgsu.librarymanagement.controller;
 
 import com.zjgsu.librarymanagement.model.dto.BookDTO;
 import com.zjgsu.librarymanagement.model.dto.BookSearchRequest;
+import com.zjgsu.librarymanagement.model.dto.CategoryInfo;
 import com.zjgsu.librarymanagement.response.ApiResponse;
 import com.zjgsu.librarymanagement.service.BookService;
 import com.zjgsu.librarymanagement.util.JwtUtil;
@@ -97,8 +98,8 @@ public class BookController {
      * 获取所有图书分类
      */
     @GetMapping("/categories")
-    public ApiResponse<Map<Integer, String>> getCategories(@RequestHeader("Authorization") String tk) {
-        Map<Integer, String> categories = bookService.getCategories();
-        return ApiResponse.success(categories);
+    public ApiResponse<List<CategoryInfo>> getCategories(@RequestHeader("Authorization") String tk) {
+        List<CategoryInfo> categoryInfos = bookService.getCategoryDetails();
+        return ApiResponse.success(categoryInfos);
     }
 }

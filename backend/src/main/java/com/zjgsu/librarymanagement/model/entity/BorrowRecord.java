@@ -33,6 +33,11 @@ public class BorrowRecord {
     @TableField("book_id")
     private Long bookId;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "book_id", referencedColumnName = "id",
+            insertable = false, updatable = false)
+    private Book book;
+
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @Column(name = "borrow_date", insertable = false,
             columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")

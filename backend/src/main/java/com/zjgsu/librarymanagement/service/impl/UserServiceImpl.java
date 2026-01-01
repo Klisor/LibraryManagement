@@ -150,8 +150,7 @@ public class UserServiceImpl implements UserService {
     public UserDTO updateUser(Long id, UserUpdateRequest updateRequest) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(404, "用户不存在"));
-
-        // 更新邮箱
+// 更新邮箱
         if (updateRequest.getEmail() != null) {
             // 检查邮箱是否被其他用户使用
             userRepository.findByEmail(updateRequest.getEmail())
@@ -163,13 +162,24 @@ public class UserServiceImpl implements UserService {
             user.setEmail(updateRequest.getEmail());
         }
 
-        // 更新最大借阅数量
+// 更新最大借阅数量
         if (updateRequest.getMaxBorrowCount() != null) {
             if (updateRequest.getMaxBorrowCount() < user.getBorrowedCount()) {
                 throw new BusinessException("最大借阅数量不能小于当前借阅数量");
             }
             user.setMaxBorrowCount(updateRequest.getMaxBorrowCount());
         }
+
+// 更新密码
+
+            // 验证新密码是否符合要求（可根据需要添加更多规则）
+            if (updateRequest.getPassword().length() < 6) {
+                throw new BusinessException("新密码长度至少6位");
+            }
+            // 加密新密码并保存
+            String encodedPassword = passwordEncoder.encode(updateRequest.getPassword());
+            user.setPassword(encodedPassword);
+
 
         User updatedUser = userRepository.save(user);
         log.info("更新用户成功: {}", updatedUser.getUsername());

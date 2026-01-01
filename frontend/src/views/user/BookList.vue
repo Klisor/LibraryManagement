@@ -46,7 +46,7 @@
               <el-option label="作者" value="author"></el-option>
               <el-option label="ISBN" value="isbn"></el-option>
             </el-select>
-            <el-button slot="append" icon="el-icon-search" @click="handleSearch" class="ancient-btn"></el-button>
+            <el-button slot="append" icon="el-icon-search" @click="handleSearch" class="ancient-search-btn"></el-button>
           </el-input>
         </div>
 
@@ -751,8 +751,27 @@ export default {
   transition: all 0.3s;
   box-shadow: none;
 }
-
 .ancient-btn:hover {
+  background: linear-gradient(to bottom, #dcd7cd, #dcd7cd);
+  color: #333 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  border-color: #d4b483 !important;
+}
+.ancient-search-btn {
+  background: linear-gradient(to bottom, #e6e2d9, #e6e2d9);
+  border: 1px solid #e8d4b8 !important;
+  color: #555 !important;
+  font-weight: 500;
+  border-radius: 6px !important;
+  cursor: pointer;
+  padding: 10px 16px;
+  font-size: 14px;
+  transition: all 0.3s;
+  box-shadow: none;
+}
+
+.ancient-search-btn:hover {
   background: linear-gradient(to bottom, #dcd7cd, #dcd7cd);
   color: #333 !important;
   transform: translateY(-2px);
