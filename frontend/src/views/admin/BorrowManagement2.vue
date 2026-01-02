@@ -94,36 +94,6 @@
                       </el-option>
                     </el-select>
 
-                    <!-- 借阅记录详情展示 -->
-                    <div v-if="selectedReturnRecord" class="record-info">
-                      <el-card shadow="never" class="record-card">
-                        <div slot="header" class="clearfix">
-                          <span style="font-weight: bold; color: #5b4636;">
-                            <i class="el-icon-notebook-2"></i> {{ selectedReturnRecord.bookTitle }}
-                          </span>
-                        </div>
-                        <el-descriptions :column="1" size="small" class="record-descriptions">
-                          <el-descriptions-item label="借阅日期">
-                            <i class="el-icon-time"></i> {{ formatDate(selectedReturnRecord.borrowDate) }}
-                          </el-descriptions-item>
-                          <el-descriptions-item label="应还日期">
-                            <i class="el-icon-date"></i> {{ formatDate(selectedReturnRecord.dueDate) }}
-                          </el-descriptions-item>
-                          <el-descriptions-item label="续借次数">
-                            <i class="el-icon-refresh"></i> {{ selectedReturnRecord.renewedCount }}/{{
-                              selectedReturnRecord.maxRenewCount }}
-                          </el-descriptions-item>
-                          <el-descriptions-item label="当前状态">
-                            <el-tag :type="getStatusTagType(selectedReturnRecord)" size="small" class="status-tag">
-                              {{ getRealStatusText(selectedReturnRecord) }}
-                            </el-tag>
-                            <span v-if="isOverdue(selectedReturnRecord)" style="color: #f56c6c; margin-left: 10px;">
-                              逾期 {{ calculateOverdueDays(selectedReturnRecord) }} 天
-                            </span>
-                          </el-descriptions-item>
-                        </el-descriptions>
-                      </el-card>
-                    </div>
                   </el-form-item>
 
                   <el-form-item class="form-buttons">

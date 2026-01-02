@@ -614,6 +614,7 @@ export default {
 }
 
 .logo {
+    background-color: white;
   margin: 2px 20px;
 }
 

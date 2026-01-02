@@ -1068,6 +1068,7 @@ h2 {
 }
 
 .logo {
+    background-color: white;
   margin: 2px 20px;
 }
 
