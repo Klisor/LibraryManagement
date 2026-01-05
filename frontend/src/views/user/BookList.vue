@@ -25,7 +25,6 @@
             </span>
             <el-dropdown-menu slot="dropdown">
               <el-dropdown-item command="profile">个人资料</el-dropdown-item>
-              <el-dropdown-item command="notes">我的笔记</el-dropdown-item>
               <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
             </el-dropdown-menu>
           </el-dropdown>
@@ -1415,7 +1414,7 @@ export default {
   border: 1px solid #e8d4b8 !important;
   color: #5b4636 !important;
   transition: all 0.3s !important;
-  font-family: "Microsoft YaHei", "Segoe UI", sans-serif !important;
+  /* font-family: "Microsoft YaHei", "Segoe UI", sans-serif !important; */
   border-radius: 4px !important;
 }
 

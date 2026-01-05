@@ -25,7 +25,6 @@
             </span>
             <el-dropdown-menu slot="dropdown">
               <el-dropdown-item command="profile">个人资料</el-dropdown-item>
-              <el-dropdown-item command="notes">我的笔记</el-dropdown-item>
               <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
             </el-dropdown-menu>
           </el-dropdown>

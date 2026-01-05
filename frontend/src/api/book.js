@@ -529,10 +529,7 @@ const realApi = {
   async getCategories() {
     return request.get('/books/categories')
   },
-  async getBooksByCategory(categoryCode) {
-    return request.get('/books/category', { params: { categoryCode } })
-    console.log(categoryCode)
-  },
+
 }
 
 // 根据配置选择使用哪个API

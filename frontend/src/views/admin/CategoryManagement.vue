@@ -16,7 +16,6 @@
                 <i class="el-icon-arrow-down el-icon--right"></i>
               </span>
               <el-dropdown-menu slot="dropdown">
-                <el-dropdown-item command="profile">个人资料</el-dropdown-item>
                 <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
               </el-dropdown-menu>
             </el-dropdown>
@@ -212,7 +211,7 @@ export default {
       const startX = margin.left + (availableWidth - totalWidth) / 2;
       
       // 绘制标题
-      this.drawTitle(ctx, canvas, '分类图书数量统计');
+      // this.drawTitle(ctx, canvas, '分类图书数量统计');
       
       // 绘制坐标轴
       this.drawAxes(ctx, canvas, margin, maxValue, scaleY);

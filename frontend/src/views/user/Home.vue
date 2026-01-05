@@ -26,7 +26,6 @@
               </span>
               <el-dropdown-menu slot="dropdown">
                 <el-dropdown-item command="profile">个人资料</el-dropdown-item>
-                <el-dropdown-item command="notes">我的笔记</el-dropdown-item>
                 <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
               </el-dropdown-menu>
             </el-dropdown>
@@ -402,7 +401,7 @@ export default {
         } catch (apiError) {
           console.error('调用图书API失败:', apiError)
           // 使用模拟数据
-          this.useMockHotBooks()
+  
           return
         }
 
@@ -427,7 +426,6 @@ export default {
 
           if (books.length === 0) {
             // 如果没有数据，使用模拟数据
-            this.useMockHotBooks()
             return
           }
 
@@ -454,12 +452,10 @@ export default {
 
         } else {
           // API返回错误，使用模拟数据
-          this.useMockHotBooks()
         }
       } catch (error) {
         console.error('获取热门图书失败:', error)
         // 使用模拟数据
-        this.useMockHotBooks()
       } finally {
         this.hotBooksLoading = false
       }
