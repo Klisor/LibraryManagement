@@ -1,0 +1,2162 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "图书管理系统 API",
+    "description": "基于设计文档（修改版：前端分页）整理的接口文档",
+    "version": "1.0.0",
+    "contact": {
+      "name": "开发团队",
+      "email": "dev@example.com"
+    }
+  },
+  "tags": [
+    {
+      "name": "用户管理"
+    },
+    {
+      "name": "借阅管理"
+    },
+    {
+      "name": "笔记管理"
+    }
+  ],
+  "paths": {
+    "/api/users/register": {
+      "post": {
+        "summary": "用户注册",
+        "deprecated": false,
+        "description": "公开注册接口，只能注册为普通用户",
+        "tags": [
+          "用户管理"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "username",
+                  "password",
+                  "email"
+                ],
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 20,
+                    "description": "用户名(3-20字符)"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 6,
+                    "maxLength": 20,
+                    "description": "密码(6-20字符)"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "description": "邮箱"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "注册成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                },
+                "example": {
+                  "code": 200,
+                  "message": "注册成功",
+                  "data": {
+                    "id": 1,
+                    "username": "test",
+                    "email": "test@example.com",
+                    "role": "USER",
+                    "maxBorrowCount": 5,
+                    "borrowedCount": 0,
+                    "createdAt": "2024-01-01T00:00:00.000Z"
+                  },
+                  "timestamp": "2024-01-01T00:00:00.000Z"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "400": {
+            "description": "注册失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "code": 400,
+                  "message": "用户名已存在",
+                  "data": null,
+                  "timestamp": "2024-01-01T00:00:00.000Z"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/users": {
+      "post": {
+        "summary": "管理员添加用户",
+        "deprecated": false,
+        "description": "管理员添加用户，可选择角色",
+        "tags": [
+          "用户管理"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "username",
+                  "password",
+                  "email"
+                ],
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 20
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 6,
+                    "maxLength": 20
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "USER",
+                      "ADMIN"
+                    ],
+                    "default": "USER"
+                  }
+                }
+              },
+              "example": {
+                "username": "穆艺涵",
+                "password": "1dCqSa0NrQKCTjm",
+                "email": "ryiiuk.g2w@tom.com",
+                "role": "USER"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "添加成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "code": 200,
+                  "message": "用户添加成功",
+                  "data": {
+                    "id": 2,
+                    "username": "admin",
+                    "email": "admin@example.com",
+                    "role": "ADMIN",
+                    "maxBorrowCount": 5,
+                    "borrowedCount": 0,
+                    "createdAt": "2024-01-01T00:00:00.000Z"
+                  },
+                  "timestamp": "2024-01-01T00:00:00.000Z"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      },
+      "get": {
+        "summary": "获取用户列表（前端分页）",
+        "deprecated": false,
+        "description": "管理员查看用户列表，支持搜索筛选",
+        "tags": [
+          "用户管理"
+        ],
+        "parameters": [
+          {
+            "name": "username",
+            "in": "query",
+            "description": "用户名搜索",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "email",
+            "in": "query",
+            "description": "邮箱搜索",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "description": "角色筛选",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER",
+                "ADMIN"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "code": 200,
+                  "message": "成功",
+                  "data": [
+                    {
+                      "id": 1,
+                      "username": "test",
+                      "email": "test@example.com",
+                      "role": "USER",
+                      "maxBorrowCount": 5,
+                      "borrowedCount": 2,
+                      "createdAt": "2024-01-01T00:00:00.000Z"
+                    },
+                    {
+                      "id": 2,
+                      "username": "admin",
+                      "email": "admin@example.com",
+                      "role": "ADMIN",
+                      "maxBorrowCount": 10,
+                      "borrowedCount": 0,
+                      "createdAt": "2024-01-02T00:00:00.000Z"
+                    }
+                  ],
+                  "timestamp": "2024-01-01T00:00:00.000Z"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/users/login": {
+      "post": {
+        "summary": "用户登录",
+        "deprecated": false,
+        "description": "支持用户名/邮箱+密码登录",
+        "tags": [
+          "用户管理"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "登录成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "code": 200,
+                  "message": "登录成功",
+                  "data": {
+                    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                    "expiresIn": 86400,
+                    "user": {
+                      "id": 1,
+                      "username": "test",
+                      "email": "test@example.com",
+                      "role": "USER",
+                      "maxBorrowCount": 5,
+                      "borrowedCount": 2
+                    }
+                  },
+                  "timestamp": "2024-01-01T00:00:00.000Z"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/users/{id}": {
+      "get": {
+        "summary": "获取用户详情",
+        "deprecated": false,
+        "description": "用户自己或管理员查看",
+        "tags": [
+          "用户管理"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "example": 0,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "code": 200,
+                  "message": "成功",
+                  "data": {
+                    "id": 1,
+                    "username": "test",
+                    "email": "test@example.com",
+                    "role": "USER",
+                    "maxBorrowCount": 5,
+                    "borrowedCount": 2,
+                    "createdAt": "2024-01-01T00:00:00.000Z",
+                    "updatedAt": "2024-01-01T00:00:00.000Z"
+                  },
+                  "timestamp": "2024-01-01T00:00:00.000Z"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      },
+      "put": {
+        "summary": "更新用户信息",
+        "deprecated": false,
+        "description": "用户自己或管理员更新",
+        "tags": [
+          "用户管理"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "example": 0,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "maxBorrowCount": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              },
+              "examples": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "更新成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "code": 200,
+                  "message": "更新成功",
+                  "data": {
+                    "id": 1,
+                    "username": "test",
+                    "email": "new@example.com",
+                    "role": "USER",
+                    "maxBorrowCount": 10,
+                    "borrowedCount": 2,
+                    "updatedAt": "2024-01-01T00:00:00.000Z"
+                  },
+                  "timestamp": "2024-01-01T00:00:00.000Z"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/borrow/records/{id}": {
+      "get": {
+        "summary": "获取借阅记录（前端分页） Copy",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "借阅管理"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "code": 200,
+                  "message": "成功",
+                  "data": [
+                    {
+                      "id": 1,
+                      "userId": 1,
+                      "bookId": 2,
+                      "userName": "张三",
+                      "bookTitle": "红楼梦",
+                      "borrowDate": "2024-01-01T00:00:00.000Z",
+                      "dueDate": "2024-01-31T00:00:00.000Z",
+                      "returnDate": null,
+                      "renewedCount": 0,
+                      "maxRenewCount": 1,
+                      "status": "BORROWED",
+                      "createdAt": "2024-01-01T00:00:00.000Z"
+                    }
+                  ],
+                  "timestamp": "2024-01-01T00:00:00.000Z"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/borrow": {
+      "post": {
+        "summary": "借书",
+        "deprecated": false,
+        "description": "管理员为用户借书",
+        "tags": [
+          "借阅管理"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "userId",
+                  "bookId"
+                ],
+                "properties": {
+                  "userId": {
+                    "type": "integer"
+                  },
+                  "bookId": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "借书成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "code": 200,
+                  "message": "借书成功",
+                  "data": {
+                    "recordId": 1,
+                    "bookId": 2,
+                    "userId": 1,
+                    "bookTitle": "红楼梦",
+                    "userName": "张三",
+                    "borrowDate": "2024-01-01T00:00:00.000Z",
+                    "dueDate": "2024-01-31T00:00:00.000Z",
+                    "status": "BORROWED"
+                  },
+                  "timestamp": "2024-01-01T00:00:00.000Z"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/borrow/{recordId}/return": {
+      "post": {
+        "summary": "还书",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "借阅管理"
+        ],
+        "parameters": [
+          {
+            "name": "recordId",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "example": 0,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "还书成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "code": 200,
+                  "message": "还书成功",
+                  "data": {
+                    "recordId": 1,
+                    "bookId": 2,
+                    "userId": 1,
+                    "bookTitle": "红楼梦",
+                    "userName": "张三",
+                    "borrowDate": "2024-01-01T00:00:00.000Z",
+                    "returnDate": "2024-01-15T00:00:00.000Z",
+                    "status": "RETURNED"
+                  },
+                  "timestamp": "2024-01-01T00:00:00.000Z"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/borrow/{recordId}/renew": {
+      "post": {
+        "summary": "续借",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "借阅管理"
+        ],
+        "parameters": [
+          {
+            "name": "recordId",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "example": 0,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "续借成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "code": 200,
+                  "message": "续借成功",
+                  "data": {
+                    "recordId": 1,
+                    "newDueDate": "2024-02-14T00:00:00.000Z",
+                    "renewedCount": 1,
+                    "maxRenewCount": 1
+                  },
+                  "timestamp": "2024-01-01T00:00:00.000Z"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/borrow/records": {
+      "get": {
+        "summary": "获取借阅记录（前端分页）",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "借阅管理"
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "description": "状态筛选",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "BORROWED",
+                "RETURNED",
+                "OVERDUE"
+              ]
+            }
+          },
+          {
+            "name": "userId",
+            "in": "query",
+            "description": "用户ID筛选",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "code": 200,
+                  "message": "成功",
+                  "data": [
+                    {
+                      "id": 1,
+                      "userId": 1,
+                      "bookId": 2,
+                      "userName": "张三",
+                      "bookTitle": "红楼梦",
+                      "borrowDate": "2024-01-01T00:00:00.000Z",
+                      "dueDate": "2024-01-31T00:00:00.000Z",
+                      "returnDate": null,
+                      "renewedCount": 0,
+                      "maxRenewCount": 1,
+                      "status": "BORROWED",
+                      "createdAt": "2024-01-01T00:00:00.000Z"
+                    }
+                  ],
+                  "timestamp": "2024-01-01T00:00:00.000Z"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/borrow/overdue": {
+      "get": {
+        "summary": "获取逾期借阅记录",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "借阅管理"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "code": 200,
+                  "message": "成功",
+                  "data": [
+                    {
+                      "id": 3,
+                      "userId": 3,
+                      "bookId": 4,
+                      "userName": "王五",
+                      "bookTitle": "西游记",
+                      "borrowDate": "2023-12-01T00:00:00.000Z",
+                      "dueDate": "2023-12-31T00:00:00.000Z",
+                      "overdueDays": 1,
+                      "status": "OVERDUE",
+                      "createdAt": "2023-12-01T00:00:00.000Z"
+                    }
+                  ],
+                  "timestamp": "2024-01-01T00:00:00.000Z"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/borrow/stats": {
+      "get": {
+        "summary": "获取借阅统计",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "借阅管理"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "code": 200,
+                  "message": "成功",
+                  "data": {
+                    "totalUsers": 100,
+                    "totalBooks": 500,
+                    "totalBorrowed": 50,
+                    "totalOverdue": 5,
+                    "todayBorrowed": 3,
+                    "todayReturned": 2,
+                    "popularBooks": [
+                      {
+                        "bookId": 1,
+                        "bookTitle": "红楼梦",
+                        "borrowCount": 20
+                      }
+                    ],
+                    "popularCategories": [
+                      {
+                        "category": 1,
+                        "categoryName": "文学",
+                        "count": 30
+                      }
+                    ]
+                  },
+                  "timestamp": "2024-01-01T00:00:00.000Z"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/notes": {
+      "get": {
+        "summary": "获取笔记列表（前端分页）",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "笔记管理"
+        ],
+        "parameters": [
+          {
+            "name": "bookId",
+            "in": "query",
+            "description": "书籍ID筛选",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "code": 200,
+                  "message": "成功",
+                  "data": [
+                    {
+                      "id": 1,
+                      "userId": 1,
+                      "bookId": 2,
+                      "bookTitle": "红楼梦",
+                      "title": "红楼梦读书笔记",
+                      "content": "这是一篇关于红楼梦的读书笔记...",
+                      "createdAt": "2024-01-01T00:00:00.000Z",
+                      "updatedAt": "2024-01-01T00:00:00.000Z"
+                    }
+                  ],
+                  "timestamp": "2024-01-01T00:00:00.000Z"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "创建笔记",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "笔记管理"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "title",
+                  "content"
+                ],
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "content": {
+                    "type": "string"
+                  },
+                  "bookId": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "example": {
+                "title": "是",
+                "content": "cupidatat voluptate id amet exercitation",
+                "bookId": 4
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "code": 200,
+                  "message": "笔记创建成功",
+                  "data": {
+                    "id": 1,
+                    "userId": 1,
+                    "bookId": 2,
+                    "title": "笔记标题",
+                    "content": "笔记内容",
+                    "createdAt": "2024-01-01T00:00:00.000Z",
+                    "updatedAt": "2024-01-01T00:00:00.000Z"
+                  },
+                  "timestamp": "2024-01-01T00:00:00.000Z"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/notes/{id}": {
+      "get": {
+        "summary": "获取笔记详情",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "笔记管理"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "example": 9,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "code": 200,
+                  "message": "成功",
+                  "data": {
+                    "id": 1,
+                    "userId": 1,
+                    "bookId": 2,
+                    "bookTitle": "红楼梦",
+                    "title": "红楼梦读书笔记",
+                    "content": "这是一篇关于红楼梦的读书笔记...",
+                    "createdAt": "2024-01-01T00:00:00.000Z",
+                    "updatedAt": "2024-01-01T00:00:00.000Z"
+                  },
+                  "timestamp": "2024-01-01T00:00:00.000Z"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      },
+      "put": {
+        "summary": "更新笔记",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "笔记管理"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "example": 4,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "title": "老实滑然而抱必定",
+                "content": "deserunt amet sunt dolore"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "更新成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "code": 200,
+                  "message": "笔记更新成功",
+                  "data": {
+                    "id": 1,
+                    "userId": 1,
+                    "bookId": 2,
+                    "title": "新标题",
+                    "content": "新内容",
+                    "updatedAt": "2024-01-01T00:00:00.000Z"
+                  },
+                  "timestamp": "2024-01-01T00:00:00.000Z"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "summary": "删除笔记",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "笔记管理"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "example": 4,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "删除成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "code": 200,
+                  "message": "笔记删除成功",
+                  "data": null,
+                  "timestamp": "2024-01-01T00:00:00.000Z"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/ai/chat": {
+      "post": {
+        "summary": "AI对话接口（公开测试，无需token）",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIChatRequest",
+                "description": ""
+              },
+              "example": {
+                "message": "《奥赛德》在哪里",
+                "conversationId": "36"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAIChatResponse"
+                },
+                "examples": {
+                  "1": {
+                    "summary": "成功示例",
+                    "value": {
+                      "code": 0,
+                      "message": "",
+                      "data": {
+                        "id": 0,
+                        "userId": 0,
+                        "userMessage": "",
+                        "aiResponse": "",
+                        "conversationId": "",
+                        "createdAt": "",
+                        "modelUsed": ""
+                      },
+                      "timestamp": ""
+                    }
+                  },
+                  "2": {
+                    "summary": "成功示例",
+                    "value": {
+                      "code": 0,
+                      "message": "",
+                      "data": {
+                        "id": 0,
+                        "userId": 0,
+                        "userMessage": "",
+                        "aiResponse": "",
+                        "conversationId": "",
+                        "createdAt": "",
+                        "modelUsed": ""
+                      },
+                      "timestamp": ""
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/ai/history": {
+      "get": {
+        "summary": "获取对话历史（测试用，无需token）",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "",
+            "required": true,
+            "example": 10,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListAIChatResponse"
+                },
+                "examples": {
+                  "1": {
+                    "summary": "成功示例",
+                    "value": {
+                      "code": 0,
+                      "message": "",
+                      "data": [
+                        {
+                          "id": 0,
+                          "userId": 0,
+                          "userMessage": "",
+                          "aiResponse": "",
+                          "conversationId": "",
+                          "createdAt": "",
+                          "modelUsed": ""
+                        }
+                      ],
+                      "timestamp": ""
+                    }
+                  },
+                  "2": {
+                    "summary": "成功示例",
+                    "value": {
+                      "code": 0,
+                      "message": "",
+                      "data": [
+                        {
+                          "id": 0,
+                          "userId": 0,
+                          "userMessage": "",
+                          "aiResponse": "",
+                          "conversationId": "",
+                          "createdAt": "",
+                          "modelUsed": ""
+                        }
+                      ],
+                      "timestamp": ""
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      },
+      "delete": {
+        "summary": "清除对话历史（测试用，无需token）",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                },
+                "examples": {
+                  "1": {
+                    "summary": "成功示例",
+                    "value": {
+                      "code": 0,
+                      "message": "",
+                      "data": null,
+                      "timestamp": ""
+                    }
+                  },
+                  "2": {
+                    "summary": "成功示例",
+                    "value": {
+                      "code": 0,
+                      "message": "",
+                      "data": null,
+                      "timestamp": ""
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/ai/test": {
+      "get": {
+        "summary": "test",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": ""
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/books": {
+      "get": {
+        "summary": "获取图书列表（前端分页）",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "title",
+            "in": "query",
+            "description": "",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "author",
+            "in": "query",
+            "description": "",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "availableOnly",
+            "in": "query",
+            "description": "",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListBookDTO"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "",
+                  "data": [
+                    {
+                      "id": 0,
+                      "isbn": "",
+                      "title": "",
+                      "author": "",
+                      "publisher": "",
+                      "publishYear": 0,
+                      "category": 0,
+                      "totalCopies": 0,
+                      "availableCopies": 0,
+                      "location": "",
+                      "description": "",
+                      "createdAt": "",
+                      "updatedAt": ""
+                    }
+                  ],
+                  "timestamp": ""
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      },
+      "post": {
+        "summary": "添加图书（管理员）",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BookDTO",
+                "description": ""
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBookDTO"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "",
+                  "data": {
+                    "id": 0,
+                    "isbn": "",
+                    "title": "",
+                    "author": "",
+                    "publisher": "",
+                    "publishYear": 0,
+                    "category": 0,
+                    "totalCopies": 0,
+                    "availableCopies": 0,
+                    "location": "",
+                    "description": "",
+                    "createdAt": "",
+                    "updatedAt": ""
+                  },
+                  "timestamp": ""
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/books/{id}": {
+      "get": {
+        "summary": "获取图书详情",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBookDTO"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "",
+                  "data": {
+                    "id": 0,
+                    "isbn": "",
+                    "title": "",
+                    "author": "",
+                    "publisher": "",
+                    "publishYear": 0,
+                    "category": 0,
+                    "totalCopies": 0,
+                    "availableCopies": 0,
+                    "location": "",
+                    "description": "",
+                    "createdAt": "",
+                    "updatedAt": ""
+                  },
+                  "timestamp": ""
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      },
+      "put": {
+        "summary": "更新图书信息（管理员）",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BookDTO",
+                "description": ""
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBookDTO"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "",
+                  "data": {
+                    "id": 0,
+                    "isbn": "",
+                    "title": "",
+                    "author": "",
+                    "publisher": "",
+                    "publishYear": 0,
+                    "category": 0,
+                    "totalCopies": 0,
+                    "availableCopies": 0,
+                    "location": "",
+                    "description": "",
+                    "createdAt": "",
+                    "updatedAt": ""
+                  },
+                  "timestamp": ""
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      },
+      "delete": {
+        "summary": "删除图书（管理员）",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "",
+                  "data": null,
+                  "timestamp": ""
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/books/search": {
+      "get": {
+        "summary": "快速搜索图书",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "field",
+            "in": "query",
+            "description": "",
+            "required": true,
+            "example": "title",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListBookDTO"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "",
+                  "data": [
+                    {
+                      "id": 0,
+                      "isbn": "",
+                      "title": "",
+                      "author": "",
+                      "publisher": "",
+                      "publishYear": 0,
+                      "category": 0,
+                      "totalCopies": 0,
+                      "availableCopies": 0,
+                      "location": "",
+                      "description": "",
+                      "createdAt": "",
+                      "updatedAt": ""
+                    }
+                  ],
+                  "timestamp": ""
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/books/categories": {
+      "get": {
+        "summary": "获取所有图书分类",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMapString"
+                },
+                "example": {
+                  "code": 0,
+                  "message": "",
+                  "data": {
+                    "0": ""
+                  },
+                  "timestamp": ""
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "状态码"
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息"
+          },
+          "data": {
+            "type": "object",
+            "description": "响应数据",
+            "properties": {}
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "响应时间戳"
+          }
+        }
+      },
+      "BookDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "",
+            "format": "int64"
+          },
+          "isbn": {
+            "type": "string",
+            "description": ""
+          },
+          "title": {
+            "type": "string",
+            "description": ""
+          },
+          "author": {
+            "type": "string",
+            "description": ""
+          },
+          "publisher": {
+            "type": "string",
+            "description": ""
+          },
+          "publishYear": {
+            "type": "integer",
+            "description": "",
+            "minimum": 1000,
+            "maximum": 2100
+          },
+          "category": {
+            "type": "integer",
+            "description": "",
+            "minimum": 1,
+            "maximum": 10,
+            "default": 10
+          },
+          "totalCopies": {
+            "type": "integer",
+            "description": "",
+            "minimum": 1,
+            "default": 1
+          },
+          "availableCopies": {
+            "type": "integer",
+            "description": "",
+            "minimum": 0
+          },
+          "location": {
+            "type": "string",
+            "description": ""
+          },
+          "description": {
+            "type": "string",
+            "description": ""
+          },
+          "createdAt": {
+            "type": "string",
+            "description": ""
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": ""
+          }
+        }
+      },
+      "AIChatResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "",
+            "format": "int64"
+          },
+          "userId": {
+            "type": "integer",
+            "description": "",
+            "format": "int64"
+          },
+          "userMessage": {
+            "type": "string",
+            "description": ""
+          },
+          "aiResponse": {
+            "type": "string",
+            "description": ""
+          },
+          "conversationId": {
+            "type": "string",
+            "description": ""
+          },
+          "createdAt": {
+            "type": "string",
+            "description": ""
+          },
+          "modelUsed": {
+            "type": "string",
+            "description": "元数据"
+          }
+        }
+      },
+      "ApiResponseListBookDTO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": ""
+          },
+          "message": {
+            "type": "string",
+            "description": ""
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BookDTO",
+              "description": "com.zjgsu.librarymanagement.model.dto.BookDTO"
+            },
+            "description": ""
+          },
+          "timestamp": {
+            "type": "string",
+            "description": ""
+          }
+        }
+      },
+      "ApiResponseAIChatResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": ""
+          },
+          "message": {
+            "type": "string",
+            "description": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/AIChatResponse",
+            "description": ""
+          },
+          "timestamp": {
+            "type": "string",
+            "description": ""
+          }
+        }
+      },
+      "ApiResponseBookDTO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": ""
+          },
+          "message": {
+            "type": "string",
+            "description": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/BookDTO",
+            "description": ""
+          },
+          "timestamp": {
+            "type": "string",
+            "description": ""
+          }
+        }
+      },
+      "AIChatRequest": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": ""
+          },
+          "bookId": {
+            "type": "integer",
+            "description": "",
+            "format": "int64"
+          },
+          "conversationId": {
+            "type": "string",
+            "description": ""
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "ApiResponseListAIChatResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": ""
+          },
+          "message": {
+            "type": "string",
+            "description": ""
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AIChatResponse",
+              "description": "com.zjgsu.librarymanagement.model.dto.AIChatResponse"
+            },
+            "description": ""
+          },
+          "timestamp": {
+            "type": "string",
+            "description": ""
+          }
+        }
+      },
+      "MapString": {
+        "type": "object",
+        "properties": {
+          "0": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponseVoid": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": ""
+          },
+          "message": {
+            "type": "string",
+            "description": ""
+          },
+          "data": {
+            "description": "",
+            "type": "null"
+          },
+          "timestamp": {
+            "type": "string",
+            "description": ""
+          }
+        }
+      },
+      "ApiResponseMapString": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": ""
+          },
+          "message": {
+            "type": "string",
+            "description": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/MapString",
+            "description": ""
+          },
+          "timestamp": {
+            "type": "string",
+            "description": ""
+          }
+        }
+      }
+    },
+    "responses": {},
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      },
+      "bearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  },
+  "servers": [],
+  "security": []
+}
